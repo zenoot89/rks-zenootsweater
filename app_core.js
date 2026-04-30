@@ -2176,19 +2176,25 @@ function updateRasioDashboard() {
     const roasAktual=iklan>0?(totalPendapatan/iklan).toFixed(2):0;
     const acosAktual=totalPendapatan>0?(iklan/totalPendapatan)*100:0;
     const adminRasio=totalPendapatan>0?-(adminTotal/totalPendapatan)*100:0;
-    const amsRasio=totalPendapatan>0?-(ams/totalPendapatan)*100:0;
+    const amsRasio = amsRasioPct; // alias
+    const iklanRasio = totalPendapatan > 0 ? (iklan / totalPendapatan) * 100 : 0; // 2 desimal (23.52%)
+    const oprRasio   = totalPendapatan > 0 ? (opr   / totalPendapatan) * 100 : 0; // 2 desimal (24.26%)
     const layanan=rkData.income?.adminBreakdown?.layanan||0;
     const adminFee=rkData.income?.adminBreakdown?.admin||0;
     const proses=rkData.income?.adminBreakdown?.proses||0;
     const kampanye=rkData.income?.adminBreakdown?.kampanye||0;
-    const layananRasio=totalPendapatan>0?-(layanan/totalPendapatan)*100:0;
-    const adminFeeRasio=totalPendapatan>0?-(adminFee/totalPendapatan)*100:0;
-    const prosesRasio=totalPendapatan>0?-(proses/totalPendapatan)*100:0;
-    const kampanyeRasio=totalPendapatan>0?-(kampanye/totalPendapatan)*100:0;
-    const isiSaldoRasio=totalPendapatan>0?-(isiSaldo/totalPendapatan)*100:0;
-    const iklanRasio=totalPendapatan>0?-(iklan/totalPendapatan)*100:0;
-    const oprRasio=totalPendapatan>0?-(opr/totalPendapatan)*100:0;
-    const totalAdminKomponen=ams+adminFee+layanan+proses+kampanye+isiSaldo;
+    // ── Rasio komponen admin: DIBULATKAN ke integer sesuai spreadsheet ALLEY ──
+    const pctRound = (val, base) => base > 0 ? Math.round((val / base) * 100) : 0;
+    const amsRasioPct      = pctRound(ams,      totalPendapatan);
+    const adminFeeRasioPct = pctRound(adminFee, totalPendapatan);
+    const layananRasioPct  = pctRound(layanan,  totalPendapatan);
+    const prosesRasioPct   = pctRound(proses,   totalPendapatan);
+    const kampanyeRasioPct = pctRound(kampanye, totalPendapatan);
+    const isiSaldoRasioPct = pctRound(isiSaldo, totalPendapatan);
+    const totalAdminRasioPct = pctRound(totalAdminKomponen, totalPendapatan);
+    // SPREADSHEET ALLEY: TOTAL ADMIN = AMS+Adm+Layanan+Proses+Kampanye SAJA
+    // IsiSaldo tampil TERPISAH — tidak masuk total admin header
+    const totalAdminKomponen=ams+adminFee+layanan+proses+kampanye;
     const totalAdminRasio=totalPendapatan>0?-(totalAdminKomponen/totalPendapatan)*100:0;
     const gpm=totalPendapatan>0?((totalPendapatan-hpp)/totalPendapatan)*100:0;
     const labaRugi=totalPenghasilan-hpp-opr-iklan;
@@ -2197,7 +2203,8 @@ function updateRasioDashboard() {
     // ── Target & Minimum ──
     // GPM Minimum = semua beban non-HPP / pendapatan (BEP: laba = 0)
     // GPM min agar BEP: HPP/pend + admin%/pend + iklan%/pend + opr%/pend = 1  →  gpmMin = (admin+iklan+opr)/pend*100 + (hpp/pend)*100... 
-    // Lebih tepat: gpmMin = pct biaya di luar HPP = (totalAdminKomponen + iklan + opr) / totalPendapatan * 100
+    // totalBebanNonHpp untuk GPM Min: admin (tanpa isiSaldo) + iklan + opr
+    // IsiSaldo sudah termasuk dalam komponen iklan (real cost), tidak dihitung terpisah
     const totalBebanNonHpp = totalAdminKomponen + iklan + opr;
     const gpmMin = totalPendapatan > 0 ? (totalBebanNonHpp / totalPendapatan) * 100 : 0;
     // ROAS Target BEP: ROAS saat GPM aktual bisa menutup semua beban
@@ -2215,7 +2222,8 @@ function updateRasioDashboard() {
     if(btn){ btn.style.opacity=hasData?'1':'0.4'; btn.style.pointerEvents=hasData?'auto':'none'; }
 
     // ── Render tabel ──
-    const pct=(v,cls)=>`<span class="rk-pct ${cls}">${v>=0?'+':''}${v.toFixed(2)}%</span>`;
+    // pct: v=nilai persen, cls=class warna, int=true→tampil integer (sesuai spreadsheet)
+    const pct=(v,cls,int=false)=>`<span class="rk-pct ${cls}">${v>=0?'+':''}${int?Math.round(v):v.toFixed(2)}%</span>`;
     const rp=(v,cls='')=>`<span class="${cls||''}">${v<0?'('+formatRp(Math.abs(v))+')':formatRp(v)}</span>`;
     const neg=v=>v<0?'rk-val-neg':'rk-val-pos';
 
@@ -2226,12 +2234,12 @@ function updateRasioDashboard() {
         {type:'normal', label:'OPERASIONAL', val:-opr, pct:oprRasio, pctCls:'rk-pct-yellow', bold:true},
         {type:'normal', label:'IKLAN (real cost)', val:-iklan, pct:iklanRasio, pctCls:'rk-pct-yellow', bold:true},
         {type:'header', label:'RASIO ADMIN DAN LAYANAN'},
-        {type:'sub', label:'Biaya Komisi AMS', val:-ams, pct:amsRasio, pctCls:'rk-pct-red'},
-        {type:'sub', label:'Biaya Administrasi', val:-adminFee, pct:adminFeeRasio, pctCls:'rk-pct-red'},
-        {type:'sub', label:'Biaya Layanan', val:-layanan, pct:layananRasio, pctCls:'rk-pct-red'},
-        {type:'sub', label:'Biaya Proses Pesanan', val:-proses, pct:prosesRasio, pctCls:'rk-pct-red'},
-        {type:'sub', label:'Biaya Kampanye', val:-kampanye, pct:kampanyeRasio, pctCls:'rk-pct-red'},
-        ...(isiSaldo > 0 ? [{type:'sub', label:'Biaya Isi Saldo Otomatis (Iklan)', val:-isiSaldo, pct:isiSaldoRasio, pctCls:'rk-pct-red'}] : []),
+        {type:'sub', label:'Biaya Komisi AMS', val:-ams, pct:amsRasioPct, pctCls:'rk-pct-red', pctInt:true},
+        {type:'sub', label:'Biaya Administrasi', val:-adminFee, pct:adminFeeRasioPct, pctCls:'rk-pct-red', pctInt:true},
+        {type:'sub', label:'Biaya Layanan', val:-layanan, pct:layananRasioPct, pctCls:'rk-pct-red', pctInt:true},
+        {type:'sub', label:'Biaya Proses Pesanan', val:-proses, pct:prosesRasioPct, pctCls:'rk-pct-red', pctInt:true},
+        {type:'sub', label:'Biaya Kampanye', val:-kampanye, pct:kampanyeRasioPct, pctCls:'rk-pct-red', pctInt:true},
+        ...(isiSaldo > 0 ? [{type:'sub', label:'Biaya Isi Saldo Otomatis (dari Penghasilan)', val:-isiSaldo, pct:isiSaldoRasioPct, pctCls:'rk-pct-red', pctInt:true}] : []),
         {type:'header', label:'METRIK KINERJA'},
         {type:'normal', label:'AOV AKTUAL', val:aov, pct:null, bold:true},
         {type:'normal', label:'TOTAL ORDER', val:totalOrder, pct:null, bold:true, isQty:true},
@@ -2258,7 +2266,7 @@ function updateRasioDashboard() {
         if(r.type==='header'){
             if(r.label==='RASIO ADMIN DAN LAYANAN'){
                 const tAdmV = totalAdminKomponen>0?'('+formatRp(totalAdminKomponen)+')':'—';
-                const tAdmP = totalAdminRasio!==0?`<span class="rk-admin-badge">⚠ ${Math.abs(totalAdminRasio).toFixed(2)}%</span>`:'';
+                const tAdmP = totalAdminRasioPct!==0?`<span class="rk-admin-badge">⚠ ${totalAdminRasioPct}%</span>`:'';
                 html+=`<tr class="rk-row-admin-total">
                     <td>
                         TOTAL BIAYA ADMIN &amp; LAYANAN
@@ -2278,7 +2286,7 @@ function updateRasioDashboard() {
             </tr>`;
         } else if(r.type==='sub'){
             const vDisplay=r.val!==undefined&&r.val!==null?(r.val<0?'('+formatRp(Math.abs(r.val))+')':formatRp(r.val)):'—';
-            const pDisplay=r.pct!==undefined&&r.pct!==null?pct(r.pct,r.pctCls||''):'';
+            const pDisplay=r.pct!==undefined&&r.pct!==null?pct(r.pct,r.pctCls||'',r.pctInt||false):'';
             const subPct = r.pct!==undefined&&r.pct!==null ? `<span class="rk-pct ${r.pctCls||''}" style="font-size:0.82em;font-weight:800;min-width:58px;text-align:center;display:inline-block;padding:3px 8px;">${(r.pct>=0?'+':'')+r.pct.toFixed(2)}%</span>` : '';
             html+=`<tr class="rk-row-sub">
                 <td style="color:#666;">↳ ${r.label}</td>
@@ -2292,7 +2300,7 @@ function updateRasioDashboard() {
             else if(r.val!==null&&r.val!==undefined){ vDisplay=`<strong>${r.val<0?'('+formatRp(Math.abs(r.val))+')':formatRp(r.val)}</strong>`; }
             const valColor = (r.val!==null&&r.val!==undefined&&r.val<0)?'#991b1b':'#333';
             if(r.pctText!==undefined){ pDisplay=`<span class="rk-pct ${r.pctCls||''}" style="font-size:0.9em;font-weight:800;min-width:65px;text-align:center;display:inline-block;padding:4px 10px;">${r.pctText}</span>`; }
-            else if(r.pct!==undefined&&r.pct!==null){ pDisplay=pct(r.pct,r.pctCls||''); }
+            else if(r.pct!==undefined&&r.pct!==null){ pDisplay=pct(r.pct,r.pctCls||'',r.pctInt||false); }
             html+=`<tr class="rk-row-normal">
                 <td style="${r.bold?'font-weight:700;':''}color:#222;">${r.label}</td>
                 <td style="text-align:right;color:${valColor};">${vDisplay}</td>

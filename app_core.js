@@ -2176,9 +2176,6 @@ function updateRasioDashboard() {
     const roasAktual=iklan>0?(totalPendapatan/iklan).toFixed(2):0;
     const acosAktual=totalPendapatan>0?(iklan/totalPendapatan)*100:0;
     const adminRasio=totalPendapatan>0?-(adminTotal/totalPendapatan)*100:0;
-    const amsRasio = amsRasioPct; // alias
-    const iklanRasio = totalPendapatan > 0 ? (iklan / totalPendapatan) * 100 : 0; // 2 desimal (23.52%)
-    const oprRasio   = totalPendapatan > 0 ? (opr   / totalPendapatan) * 100 : 0; // 2 desimal (24.26%)
     const layanan=rkData.income?.adminBreakdown?.layanan||0;
     const adminFee=rkData.income?.adminBreakdown?.admin||0;
     const proses=rkData.income?.adminBreakdown?.proses||0;
@@ -2191,11 +2188,14 @@ function updateRasioDashboard() {
     const prosesRasioPct   = pctRound(proses,   totalPendapatan);
     const kampanyeRasioPct = pctRound(kampanye, totalPendapatan);
     const isiSaldoRasioPct = pctRound(isiSaldo, totalPendapatan);
-    const totalAdminRasioPct = pctRound(totalAdminKomponen, totalPendapatan);
     // SPREADSHEET ALLEY: TOTAL ADMIN = AMS+Adm+Layanan+Proses+Kampanye SAJA
     // IsiSaldo tampil TERPISAH — tidak masuk total admin header
     const totalAdminKomponen=ams+adminFee+layanan+proses+kampanye;
+    const totalAdminRasioPct = pctRound(totalAdminKomponen, totalPendapatan);
     const totalAdminRasio=totalPendapatan>0?-(totalAdminKomponen/totalPendapatan)*100:0;
+    const amsRasio = amsRasioPct; // alias
+    const iklanRasio = totalPendapatan > 0 ? (iklan / totalPendapatan) * 100 : 0; // 2 desimal (23.52%)
+    const oprRasio   = totalPendapatan > 0 ? (opr   / totalPendapatan) * 100 : 0; // 2 desimal (24.26%)
     const gpm=totalPendapatan>0?((totalPendapatan-hpp)/totalPendapatan)*100:0;
     const labaRugi=totalPenghasilan-hpp-opr-iklan;
     const npm=totalPendapatan>0?(labaRugi/totalPendapatan)*100:0;

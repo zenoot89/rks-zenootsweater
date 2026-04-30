@@ -1201,6 +1201,17 @@ function handleRasioUpload(type, input) {
             }
 
             // Simpan ringkasan untuk ditampilkan
+            // ── KOREKSI: gunakan isiSaldo dari file Income (lebih akurat) ──────────
+            // File Income mencatat total Isi Saldo Otomatis per bulan dari sisi Shopee.
+            // CSV Ads hanya mencatat per transaksi harian — bisa berbeda karena perbedaan
+            // cut-off tanggal atau transaksi lintas bulan.
+            // Jika Income sudah diupload → ganti topupPenghasilan dari CSV dengan isiSaldo Income.
+            const isiSaldoIncome = rkData.income?.isiSaldo || 0;
+            if (isiSaldoIncome > 0) {
+                // Recalculate adSpend: buang topupPenghasilan CSV, pakai isiSaldo Income
+                adSpend = adSpend - topupPenghasilan + isiSaldoIncome;
+                topupPenghasilan = isiSaldoIncome;
+            }
             const totalAds = Math.round(adSpend);
             rkData.ads = {
                 totalAds,
@@ -1474,7 +1485,7 @@ function parseIncomeSheet(wb, box) {
         // TIDAK dimasukkan ke adminBreakdown / Rasio Admin.
         totalPenghasilan = totalPenghasilan + isiSaldo;
 
-        rkData.income = { totalPendapatan, totalPenghasilan, adminBreakdown:{ams,admin,layanan,proses,kampanye} };
+        rkData.income = { totalPendapatan, totalPenghasilan, adminBreakdown:{ams,admin,layanan,proses,kampanye}, isiSaldo };
         // Format ringkasan tidak punya No. Pesanan per baris — set kosong berarti no-filter di grafik
         rkData._incomeNoPesanan = new Set();
 
@@ -1605,7 +1616,7 @@ function parseIncomeSheet(wb, box) {
         }
         // ────────────────────────────────────────────────────────────────────────
 
-        rkData.income = { totalPendapatan, totalPenghasilan, adminBreakdown:{ams,admin,layanan,proses,kampanye} };
+        rkData.income = { totalPendapatan, totalPenghasilan, adminBreakdown:{ams,admin,layanan,proses,kampanye}, isiSaldo:totalIsiSaldo };
         rkData._incomeNoPesanan = noPesananSet;
         if (!rkData.ongkirBatal) rkData.ongkirBatal = {};
         rkData.ongkirBatal.totalOngkirSeller = totalOngkirSeller;
@@ -1624,6 +1635,18 @@ function parseIncomeSheet(wb, box) {
         const warnElT = document.getElementById('incomeFormatWarn');
         if (warnElT) warnElT.style.display = 'none';
         setTimeout(syncBiayaStatusBar, 0);
+    }
+
+    // ── Recalculate iklan jika file Ads CSV sudah diupload sebelum Income ──
+    // isiSaldo dari Income lebih akurat dari topupPenghasilan di CSV (cut-off berbeda).
+    if (rkData.ads && rkData.income?.isiSaldo > 0) {
+        const isiSaldoIncome = rkData.income.isiSaldo;
+        const oldTopup = rkData.ads.topupPenghasilan || 0;
+        const diff = isiSaldoIncome - oldTopup;
+        if (Math.abs(diff) > 100) { // ada selisih berarti
+            rkData.ads.totalAds = Math.round(rkData.ads.totalAds + diff);
+            rkData.ads.topupPenghasilan = isiSaldoIncome;
+        }
     }
 
     updateRasioDashboard();
@@ -2143,6 +2166,7 @@ function updateRasioDashboard() {
     const adminTotal = _manualAdmin > 0 ? _manualAdmin : _adminFromData;
     const ams = _manualAms > 0 ? _manualAms : (rkData.income?.adminBreakdown?.ams || 0);
     const iklan=rkData.ads?.totalAds||0;
+    const isiSaldo=rkData.income?.isiSaldo||0;
     const totalOrder=rkData.order1?.totalOrder||0;
     const maxOrderBln = smartParseNumber(document.getElementById('maxOrderBln')?.value || '0');
 
@@ -2161,9 +2185,10 @@ function updateRasioDashboard() {
     const adminFeeRasio=totalPendapatan>0?-(adminFee/totalPendapatan)*100:0;
     const prosesRasio=totalPendapatan>0?-(proses/totalPendapatan)*100:0;
     const kampanyeRasio=totalPendapatan>0?-(kampanye/totalPendapatan)*100:0;
+    const isiSaldoRasio=totalPendapatan>0?-(isiSaldo/totalPendapatan)*100:0;
     const iklanRasio=totalPendapatan>0?-(iklan/totalPendapatan)*100:0;
     const oprRasio=totalPendapatan>0?-(opr/totalPendapatan)*100:0;
-    const totalAdminKomponen=ams+adminFee+layanan+proses+kampanye;
+    const totalAdminKomponen=ams+adminFee+layanan+proses+kampanye+isiSaldo;
     const totalAdminRasio=totalPendapatan>0?-(totalAdminKomponen/totalPendapatan)*100:0;
     const gpm=totalPendapatan>0?((totalPendapatan-hpp)/totalPendapatan)*100:0;
     const labaRugi=totalPenghasilan-hpp-opr-iklan;
@@ -2206,6 +2231,7 @@ function updateRasioDashboard() {
         {type:'sub', label:'Biaya Layanan', val:-layanan, pct:layananRasio, pctCls:'rk-pct-red'},
         {type:'sub', label:'Biaya Proses Pesanan', val:-proses, pct:prosesRasio, pctCls:'rk-pct-red'},
         {type:'sub', label:'Biaya Kampanye', val:-kampanye, pct:kampanyeRasio, pctCls:'rk-pct-red'},
+        ...(isiSaldo > 0 ? [{type:'sub', label:'Biaya Isi Saldo Otomatis (Iklan)', val:-isiSaldo, pct:isiSaldoRasio, pctCls:'rk-pct-red'}] : []),
         {type:'header', label:'METRIK KINERJA'},
         {type:'normal', label:'AOV AKTUAL', val:aov, pct:null, bold:true},
         {type:'normal', label:'TOTAL ORDER', val:totalOrder, pct:null, bold:true, isQty:true},
@@ -2338,7 +2364,8 @@ function renderGpmRoasCard() {
         (rkData.income.adminBreakdown?.admin   || 0) +
         (rkData.income.adminBreakdown?.layanan || 0) +
         (rkData.income.adminBreakdown?.proses  || 0) +
-        (rkData.income.adminBreakdown?.kampanye|| 0)
+        (rkData.income.adminBreakdown?.kampanye|| 0) +
+        (rkData.income.isiSaldo                || 0)
     ) : 0;
 
     const gpmAktual = pendapatan > 0 ? ((pendapatan - hpp) / pendapatan) * 100 : 0;

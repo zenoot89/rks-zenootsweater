@@ -3068,35 +3068,16 @@ window.addEventListener('resize', () => {
 document.addEventListener('DOMContentLoaded', function() {
 
     // ── INIT MULTI-TOKO SESSION ───────────────────────────────
-    // Panggil initTokoSession dari supabase.js
     if (typeof initTokoSession === 'function') {
         initTokoSession().then(() => {
             if (typeof checkSupabaseConnection === 'function') checkSupabaseConnection();
+            // Update no-toko state pada switcher
+            const sw = document.querySelector('.toko-switcher-inner');
+            if (sw) {
+                const hasTokoNama = typeof getAktifTokoNama === 'function' && getAktifTokoNama();
+                sw.classList.toggle('no-toko', !hasTokoNama);
+            }
         });
-    }
-
-    // ── INJECT TOMBOL SWITCH TOKO & BADGE KE HEADER ──────────
-    const header = document.querySelector('.sidebar-header') ||
-                   document.querySelector('.app-header')    ||
-                   document.querySelector('header')         ||
-                   document.querySelector('.logo-wrap');
-    if (header) {
-        // Badge nama toko aktif
-        if (!document.getElementById('tokoBadge')) {
-            const badge = document.createElement('div');
-            badge.id = 'tokoBadge';
-            badge.textContent = (typeof getAktifTokoNama === 'function' && getAktifTokoNama())
-                ? '🏪 ' + getAktifTokoNama() : '— Pilih Toko';
-            badge.style.cssText = `
-                font-size:11px;font-weight:700;color:#ef4444;background:rgba(239,68,68,0.1);
-                border:1px solid rgba(239,68,68,0.3);border-radius:6px;padding:4px 10px;
-                cursor:pointer;letter-spacing:0.5px;margin-top:6px;text-align:center;
-                transition:all 0.15s;
-            `;
-            badge.title = 'Klik untuk ganti toko';
-            badge.onclick = () => { if (typeof showTokoModal === 'function') showTokoModal(false); };
-            header.appendChild(badge);
-        }
     }
 
     // ── TAB RASIO: restore OPR dari localStorage ──────────────

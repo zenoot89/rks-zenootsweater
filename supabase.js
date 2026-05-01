@@ -354,9 +354,9 @@ async function tambahToko() {
 function updateTokoUI() {
     const nama = getAktifTokoNama();
     const badge = document.getElementById('tokoBadge');
-    if (badge) badge.textContent = nama ? '🏪 ' + nama : '— Pilih Toko';
-    const switchBtn = document.getElementById('btnSwitchToko');
-    if (switchBtn) switchBtn.setAttribute('title', 'Ganti toko: ' + (nama||''));
+    if (badge) badge.textContent = nama ? nama : '— Pilih Toko';
+    const sw = document.querySelector('.toko-switcher-inner');
+    if (sw) sw.classList.toggle('no-toko', !nama);
 }
 
 // ════════════════════════════════════════════════════════

@@ -3066,6 +3066,40 @@ window.addEventListener('resize', () => {
 });
 
 document.addEventListener('DOMContentLoaded', function() {
+
+    // ── INIT MULTI-TOKO SESSION ───────────────────────────────
+    // Panggil initTokoSession dari supabase.js
+    if (typeof initTokoSession === 'function') {
+        initTokoSession().then(() => {
+            if (typeof checkSupabaseConnection === 'function') checkSupabaseConnection();
+        });
+    }
+
+    // ── INJECT TOMBOL SWITCH TOKO & BADGE KE HEADER ──────────
+    const header = document.querySelector('.sidebar-header') ||
+                   document.querySelector('.app-header')    ||
+                   document.querySelector('header')         ||
+                   document.querySelector('.logo-wrap');
+    if (header) {
+        // Badge nama toko aktif
+        if (!document.getElementById('tokoBadge')) {
+            const badge = document.createElement('div');
+            badge.id = 'tokoBadge';
+            badge.textContent = (typeof getAktifTokoNama === 'function' && getAktifTokoNama())
+                ? '🏪 ' + getAktifTokoNama() : '— Pilih Toko';
+            badge.style.cssText = `
+                font-size:11px;font-weight:700;color:#ef4444;background:rgba(239,68,68,0.1);
+                border:1px solid rgba(239,68,68,0.3);border-radius:6px;padding:4px 10px;
+                cursor:pointer;letter-spacing:0.5px;margin-top:6px;text-align:center;
+                transition:all 0.15s;
+            `;
+            badge.title = 'Klik untuk ganti toko';
+            badge.onclick = () => { if (typeof showTokoModal === 'function') showTokoModal(false); };
+            header.appendChild(badge);
+        }
+    }
+
+    // ── TAB RASIO: restore OPR dari localStorage ──────────────
     const origBtns = document.querySelectorAll('.tab-btn');
     origBtns.forEach(btn => {
         const oc = btn.getAttribute('onclick');
@@ -3159,14 +3193,58 @@ const REKAP_METRIK = [
 
 let rekapData = [];
 
-function loadRekap() {
-    const saved = localStorage.getItem('rekapTahunan');
+async function loadRekap() {
+    // Coba dari Supabase dulu
+    if (typeof rekapGetAll === 'function' && typeof getAktifTokoId === 'function' && getAktifTokoId()) {
+        try {
+            const rows = await rekapGetAll();
+            if (rows && rows.length > 0) {
+                rekapData = rows.map(r => ({
+                    bulan: r.periode,
+                    data: {
+                        pendapatan: r.total_pendapatan, penghasilan: r.total_penghasilan,
+                        hpp: r.hpp, operasional: r.operasional, iklan: r.iklan,
+                        ams: r.admin_ams, adminFee: r.admin_fee, layanan: r.admin_layanan,
+                        proses: r.admin_proses, kampanye: r.isi_saldo,
+                        aov: r.aov, totalOrder: r.total_order, roas: r.roas,
+                        acos: r.roas > 0 ? (100/r.roas).toFixed(2) : 0,
+                        gpm: r.gpm, npm: r.npm, laba: r.laba_rugi
+                    }
+                }));
+                renderRekapTable();
+                return;
+            }
+        } catch(e) { console.warn('Supabase rekap load error:', e); }
+    }
+    // Fallback ke localStorage
+    const tokoKey = 'rekapTahunan_' + (typeof getAktifTokoNama === 'function' ? getAktifTokoNama() : 'default');
+    const saved = localStorage.getItem(tokoKey) || localStorage.getItem('rekapTahunan');
     if (saved) rekapData = JSON.parse(saved);
     renderRekapTable();
 }
 
-function saveRekap() {
-    localStorage.setItem('rekapTahunan', JSON.stringify(rekapData));
+async function saveRekap() {
+    const tokoKey = 'rekapTahunan_' + (typeof getAktifTokoNama === 'function' ? getAktifTokoNama() : 'default');
+    localStorage.setItem(tokoKey, JSON.stringify(rekapData));
+    // Sync ke Supabase
+    if (typeof rekapSave === 'function' && typeof getAktifTokoId === 'function' && getAktifTokoId()) {
+        for (const b of rekapData) {
+            try {
+                const d = b.data;
+                await rekapSave(b.bulan, {
+                    total_pendapatan: parseInt(d.pendapatan)||0,
+                    total_penghasilan: parseInt(d.penghasilan)||0,
+                    hpp: parseInt(d.hpp)||0, operasional: parseInt(d.operasional)||0,
+                    iklan: parseInt(d.iklan)||0, laba_rugi: parseInt(d.laba)||0,
+                    npm: parseFloat(d.npm)||0, gpm: parseFloat(d.gpm)||0,
+                    roas: parseFloat(d.roas)||0, total_order: parseInt(d.totalOrder)||0,
+                    aov: parseInt(d.aov)||0, admin_ams: parseInt(d.ams)||0,
+                    admin_fee: parseInt(d.adminFee)||0, admin_layanan: parseInt(d.layanan)||0,
+                    admin_proses: parseInt(d.proses)||0, isi_saldo: parseInt(d.kampanye)||0
+                });
+            } catch(e) { console.warn('Supabase rekap save error:', e); }
+        }
+    }
 }
 
 function tambahBulanRekap() {
@@ -3191,6 +3269,8 @@ function hapusBulanRekap(idx) {
 function resetRekap() {
     if (!confirm('Reset semua data rekap tahunan?')) return;
     rekapData = [];
+    const tokoKey = 'rekapTahunan_' + (typeof getAktifTokoNama === 'function' ? getAktifTokoNama() : 'default');
+    localStorage.removeItem(tokoKey);
     localStorage.removeItem('rekapTahunan');
     renderRekapTable();
 }

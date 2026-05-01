@@ -330,11 +330,51 @@ async function showTokoModal(force = false) {
 async function pilihToko(id, nama) {
     setAktifToko(id, nama);
     document.getElementById('tokoModal')?.remove();
+
+    // ── Reset semua data & UI upload box ──────────────────────
+    if (typeof rkData !== 'undefined') {
+        rkData.income           = null;
+        rkData.order1           = null;
+        rkData.order2           = null;
+        rkData.ads              = null;
+        rkData.performa         = null;
+        rkData.periode          = '';
+        rkData._incomeNoPesanan = new Set();
+        rkData._incomeRawRows   = [];
+        rkData._orderRawMap     = {};
+    }
+
+    // ── Reset visual upload box ke state awal ─────────────────
+    ['boxIncome','boxOrder1','boxOrder2','boxAds','boxPerforma'].forEach(boxId => {
+        const box = document.getElementById(boxId);
+        if (!box) return;
+        box.classList.remove('uploaded');
+        const st = box.querySelector('.rk-upload-status');
+        if (st) st.textContent = 'Belum upload';
+    });
+    // Reset input file agar bisa re-upload file yang sama
+    ['fileIncome','fileOrder1','fileOrder2','fileAds','filePerforma'].forEach(fid => {
+        const el = document.getElementById(fid);
+        if (el) el.value = '';
+    });
+    // Reset status text checklist bawah
+    ['statusIncome','statusOrder1','statusOrder2','statusAds'].forEach(sid => {
+        const el = document.getElementById(sid);
+        if (el) { el.textContent = ''; el.style.color = ''; }
+    });
+    ['rk_st_income','rk_st_order1','rk_st_order2','rk_st_ads'].forEach(sid => {
+        const el = document.getElementById(sid);
+        if (el) { el.textContent = '—'; el.style.color = ''; }
+    });
+    // Hapus warning unknown ads
+    document.getElementById('warnUnknownAds')?.remove();
+
     if (typeof hppMaster !== 'undefined') hppMaster.length = 0;
     await syncHppFromSupabase();
     updateTokoUI();
-    if (typeof renderRekapTahunan === 'function') renderRekapTahunan();
     if (typeof updateRasioDashboard === 'function') updateRasioDashboard();
+    if (typeof renderRekapTahunan   === 'function') renderRekapTahunan();
+    if (typeof syncBiayaStatusBar   === 'function') syncBiayaStatusBar();
 }
 
 async function tambahToko() {

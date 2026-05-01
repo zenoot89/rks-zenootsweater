@@ -69,7 +69,7 @@
         }
         
         /* SIDEBAR — Dark Theme */
-        .sidebar { width: 220px; min-width: 220px; background: #1a1a1a; display: flex; flex-direction: column; padding: 0; box-shadow: 4px 0 20px rgba(0,0,0,0.4); position: sticky; top: 0; height: 100vh; overflow: hidden; transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.3s cubic-bezier(0.4, 0, 0.2, 1); will-change: width; }
+        .sidebar { width: 220px; min-width: 220px; background: #1a1a1a; display: flex; flex-direction: column; padding: 0; box-shadow: 4px 0 20px rgba(0,0,0,0.4); position: sticky; top: 0; height: 100vh; overflow: hidden; transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.3s cubic-bezier(0.4, 0, 0.2, 1); will-change: width; z-index: 100; }
         .sidebar-header { padding: 16px 14px 14px; border-bottom: 1px solid rgba(255,255,255,0.08); background: #000; }
         .sidebar-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 2px; }
         .sidebar-logo-icon { width: 36px; height: 36px; background: #fff; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2em; flex-shrink: 0; }
@@ -501,99 +501,15 @@
 
         
 /* ════════════════════════════════════════════════
-   TOKO SWITCHER — Lazada vibes
+   MODAL TOKO — selalu di atas semua elemen
    ════════════════════════════════════════════════ */
-.toko-switcher {
-    margin: 0 12px 8px;
-    border-radius: 10px;
-    overflow: hidden;
-}
-
-.toko-switcher-inner {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 12px;
-    background: rgba(255,255,255,0.07);
-    border: 1px solid rgba(255,255,255,0.10);
-    border-radius: 10px;
-    cursor: pointer;
-    transition: all 0.18s ease;
-    position: relative;
-}
-
-.toko-switcher-inner:hover {
-    background: rgba(238,77,45,0.15);
-    border-color: rgba(238,77,45,0.40);
-    box-shadow: 0 0 0 1px rgba(238,77,45,0.20) inset;
-}
-
-.toko-switcher-icon {
-    width: 32px;
-    height: 32px;
-    background: #ee4d2d;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    color: white;
-    box-shadow: 0 2px 6px rgba(238,77,45,0.35);
-}
-
-.toko-switcher-info {
-    flex: 1;
-    min-width: 0;
-}
-
-.toko-switcher-label {
-    font-size: 9px;
-    font-weight: 700;
-    letter-spacing: 1.5px;
-    color: rgba(255,255,255,0.40);
-    text-transform: uppercase;
-    margin-bottom: 2px;
-    line-height: 1;
-}
-
-.toko-switcher-nama {
-    font-size: 13px;
-    font-weight: 700;
-    color: #fff;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    line-height: 1.2;
-    letter-spacing: 0.3px;
-}
-
-.toko-switcher-chevron {
-    color: rgba(255,255,255,0.35);
-    flex-shrink: 0;
-    transition: color 0.15s;
-}
-
-.toko-switcher-inner:hover .toko-switcher-chevron {
-    color: #ee4d2d;
-}
-
-/* Pulse indicator saat belum pilih toko */
-.toko-switcher-inner.no-toko .toko-switcher-icon {
-    background: rgba(255,255,255,0.12);
-    animation: pulse-ring 2s ease infinite;
-}
-
-@keyframes pulse-ring {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(238,77,45,0.4); }
-    50%       { box-shadow: 0 0 0 6px rgba(238,77,45,0); }
-}
-
-/* Sidebar collapsed — hanya tampilkan icon */
-.sidebar.collapsed .toko-switcher-inner {
-    justify-content: center;
-    padding: 10px;
-}
-.sidebar.collapsed .toko-switcher-info,
-.sidebar.collapsed .toko-switcher-chevron {
-    display: none;
+#tokoModal {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 999999 !important;
+    background: rgba(0,0,0,0.75) !important;
+    backdrop-filter: blur(4px) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
 }

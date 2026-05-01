@@ -1080,148 +1080,166 @@ function handleRasioUpload(type, input) {
 
     if (type === 'ads') {
         readCsv(file, text => {
-            // Hapus BOM jika ada
             const clean = text.replace(/^\uFEFF/, '');
             const lines = clean.split('\n');
 
-            // Cari baris header: Urutan,Waktu,Deskripsi,Jumlah,...
+            // ════════════════════════════════════════════════════
+            // LAPIS 2 — CATEGORY-BASED PARSING (tahan banting)
+            // Tidak bergantung pada nama deskripsi persis.
+            // Kategorikan by SIFAT transaksi, bukan nama string.
+            // ════════════════════════════════════════════════════
+            const CAT = {
+                // Dipotong dari penghasilan Shopee — sudah include PPN
+                TOPUP_PENGHASILAN: ['dari penghasilan'],
+                // Top-up manual dari kantong seller — belum include PPN → × 1.11
+                TOPUP_MANUAL: ['isi saldo otomatis', 'top up', 'topup', 'isi saldo', 'saldo iklan dan bonus'],
+                // Gratis dari Shopee — BUKAN uang keluar → SKIP
+                BONUS_SKIP: ['bonus saldo', 'bonus iklan', 'cashback', 'gratis saldo', 'reward', 'hadiah', 'komisi afiliasi'],
+                // Pengeluaran saldo iklan — tracking saja, bukan kas keluar
+                IKLAN_SPEND: ['iklan produk', 'product ad', 'ads spend', 'deduction for', 'campaign spend',
+                              'flash sale fee', 'iklan toko', 'iklan pencarian', 'biaya iklan'],
+            };
+
+            function kategorikan(desc) {
+                const d = desc.toLowerCase().trim();
+                // Cek BONUS dulu (prioritas tinggi — jangan salah hitung sebagai topup)
+                if (CAT.BONUS_SKIP.some(k => d.includes(k))) return 'BONUS';
+                // Cek TOPUP dari Penghasilan
+                if (CAT.TOPUP_PENGHASILAN.some(k => d.includes(k))) return 'TOPUP_PENGHASILAN';
+                // Cek TOPUP Manual — pastikan bukan "dari penghasilan"
+                if (CAT.TOPUP_MANUAL.some(k => d.includes(k))) return 'TOPUP_MANUAL';
+                // Cek Pengeluaran Iklan
+                if (CAT.IKLAN_SPEND.some(k => d.includes(k))) return 'IKLAN_SPEND';
+                return 'UNKNOWN';
+            }
+
+            const PPN = 1.11;
+            let adSpend = 0;
+            let topupPenghasilan = 0, topupManual = 0, bonusShopee = 0, ppnAmount = 0, iklanTerpakai = 0;
+            // LAPIS 3 — Warning: kumpulkan transaksi tidak dikenali
+            const unknownTrx = [];
+
+            // Cari header: fuzzy match baris yang ada 'deskripsi' DAN 'jumlah'
             let hdrIdx = -1;
             lines.forEach((l, i) => {
-                if (l.toLowerCase().includes('deskripsi') && l.toLowerCase().includes('jumlah')) hdrIdx = i;
+                const ll = l.toLowerCase();
+                if (ll.includes('deskripsi') && ll.includes('jumlah')) hdrIdx = i;
             });
 
-            // ── KONSEP PERHITUNGAN ADS (UPDATED — PPN-AWARE) ────────────────────────
-            // Real cost iklan = kas riil yang keluar dari kantong seller untuk iklan,
-            // sudah termasuk PPN 11% Shopee Ads (berlaku sejak 2022).
-            //
-            // SUMBER DATA & PERLAKUAN PPN:
-            //
-            //   ✅ "Isi Saldo Otomatis (dari Penghasilan)"
-            //      → Shopee memotong langsung dari penghasilan seller.
-            //      → Angka di file = nilai yang SUDAH dipotong (sudah termasuk PPN 11%).
-            //      → TIDAK dikali PPN lagi. Langsung masuk adSpend.
-            //
-            //   ✅ "Isi Saldo Otomatis" (tanpa "dari Penghasilan")
-            //      → Top-up dari saldo/dana eksternal (bukan dari penghasilan).
-            //      → Angka di file = nominal saldo yang MASUK ke akun ads.
-            //      → Shopee mengenakan PPN 11% di atas nominal ini saat top-up.
-            //      → DIKALI 1.11 untuk mendapat kas riil yang keluar.
-            //
-            //   ✅ "Saldo Iklan dan Bonus Saldo Iklan"
-            //      → Top-up manual via transfer/rekening.
-            //      → Dari catatan: pisahkan nominal top-up (bayar seller) vs bonus (gratis Shopee).
-            //      → Nominal top-up DIKALI 1.11 (kena PPN), bonus TIDAK dihitung.
-            //      → Jika tidak ada catatan detail: seluruh nilai DIKALI 1.11.
-            //
-            //   ❌ "Iklan Produk Otomatis" / "Deduction for Product Ad" (negatif)
-            //      → Pemakaian saldo iklan — bukan kas keluar langsung.
-            //   ❌ Bonus Shopee → bukan kas keluar seller.
-            // ────────────────────────────────────────────────────────────────────────
-            const PPN = 1.11; // PPN Shopee Ads 11%
-
-            let adSpend = 0;  // total kas riil keluar (sudah include PPN)
-            let topupManual = 0, topupPenghasilan = 0, bonusShopee = 0;
-            let ppnAmount = 0; // akumulasi PPN yang ditambahkan
-            let iklanTerpakai = 0;
-
             if (hdrIdx >= 0) {
+                // LAPIS 1 — Fuzzy column index
                 const hdrs = lines[hdrIdx].split(',').map(h => h.trim().toLowerCase());
-                const iDesc = hdrs.indexOf('deskripsi');
-                const iJml  = hdrs.indexOf('jumlah');
-                const iCat  = hdrs.findIndex(h => h.includes('catatan'));
+                const fuzzyIdx = (...keys) => {
+                    for (const k of keys) {
+                        const i = hdrs.findIndex(h => h.includes(k));
+                        if (i >= 0) return i;
+                    }
+                    return -1;
+                };
+                const iDesc = fuzzyIdx('deskripsi', 'description', 'keterangan', 'nama transaksi');
+                const iJml  = fuzzyIdx('jumlah', 'amount', 'nominal', 'nilai');
+                const iCat  = fuzzyIdx('catatan', 'note', 'remark', 'detail');
 
                 for (let i = hdrIdx + 1; i < lines.length; i++) {
                     const cols = lines[i].split(',');
-                    if (cols.length < Math.max(iDesc, iJml) + 1) continue;
-                    const desc = (cols[iDesc] || '').trim().toLowerCase();
-                    const cat  = iCat >= 0 ? (cols[iCat] || '').trim().toLowerCase() : '';
-                    const raw  = (cols[iJml] || '').replace(/[^0-9.\-]/g, '');
-                    const val  = parseFloat(raw);
+                    if (cols.length < 2) continue;
+                    const desc = iDesc >= 0 ? (cols[iDesc] || '').trim() : '';
+                    if (!desc) continue;
+                    const raw = iJml >= 0 ? (cols[iJml] || '').replace(/[^0-9.\-]/g, '') : '';
+                    const val = parseFloat(raw);
                     if (isNaN(val) || val === 0) continue;
 
-                    const isIsiSaldoPenghasilan = desc.includes('dari penghasilan');
-                    const isIsiSaldoLain = !isIsiSaldoPenghasilan && (desc.includes('isi saldo otomatis') || desc.includes('isi saldo'));
-                    const isSaldoIklanTopup = desc.includes('saldo iklan') && !desc.includes('isi saldo');
-                    const isIklanPakai = (desc.includes('iklan produk') || desc.includes('ads') || desc.includes('deduction')) && val < 0;
+                    const kategori = kategorikan(desc);
 
-                    if (isIklanPakai) {
-                        // Pemakaian saldo — tracking saja, bukan kas keluar langsung
-                        iklanTerpakai += Math.abs(val);
+                    switch (kategori) {
+                        case 'IKLAN_SPEND':
+                            if (val < 0) iklanTerpakai += Math.abs(val);
+                            break;
 
-                    } else if (isIsiSaldoPenghasilan && val > 0) {
-                        // Dipotong dari penghasilan Shopee — angka di file sudah termasuk PPN
-                        // Tidak dikali PPN lagi
-                        topupPenghasilan += val;
-                        adSpend += val;
+                        case 'TOPUP_PENGHASILAN':
+                            if (val > 0) {
+                                // Angka di file sudah include PPN — tidak dikali lagi
+                                topupPenghasilan += val;
+                                adSpend += val;
+                            }
+                            break;
 
-                    } else if (isIsiSaldoLain && val > 0) {
-                        // Top-up dari sumber selain penghasilan (e.g. saldo Shopee Pay, dll)
-                        // Angka di file = nominal masuk ke saldo → kas keluar = val × PPN
-                        const kasKeluar = val * PPN;
-                        topupManual += val;
-                        ppnAmount += kasKeluar - val;
-                        adSpend += kasKeluar;
+                        case 'TOPUP_MANUAL':
+                            if (val > 0) {
+                                // Kas riil keluar = val × PPN 11%
+                                const kasKeluar = val * PPN;
+                                topupManual += val;
+                                ppnAmount += kasKeluar - val;
+                                adSpend += kasKeluar;
+                            }
+                            break;
 
-                    } else if (isSaldoIklanTopup && val > 0) {
-                        // Top-up manual via transfer/rekening (Saldo Iklan dan Bonus Saldo Iklan)
-                        // val = total nilai yang MASUK ke saldo (top-up + bonus dari Shopee)
-                        // Shopee mengenakan PPN 11% dari TOTAL nilai masuk saldo (bukan hanya top-up)
-                        // → kas riil keluar = val × PPN
-                        //
-                        // Catatan: pisahkan nominal top-up vs bonus hanya untuk tracking,
-                        // tapi PPN dihitung dari total val (bukan hanya top-up)
-                        const topUpMatch = cat.match(/saldo iklan[:\s]+([\d.]+)/i) || cat.match(/top.up[^:]*[:\s]+([\d.]+)/i);
-                        const bonusMatch = cat.match(/bonus saldo iklan[:\s]+([\d.]+)/i);
-                        if (topUpMatch || bonusMatch) {
-                            const nominalTopup = topUpMatch ? parseFloat(topUpMatch[1]) : 0;
-                            const nominalBonus = bonusMatch ? parseFloat(bonusMatch[1]) : 0;
-                            topupManual += nominalTopup;
-                            bonusShopee += nominalBonus;
-                        } else {
-                            topupManual += val;
-                        }
-                        // PPN dihitung dari total val (top-up + bonus = seluruh nilai masuk saldo)
-                        const kasKeluar = val * PPN;
-                        ppnAmount += kasKeluar - val;
-                        adSpend += kasKeluar;
+                        case 'BONUS':
+                            // Gratis dari Shopee — catat tapi TIDAK masuk adSpend
+                            if (val > 0) bonusShopee += val;
+                            break;
+
+                        case 'UNKNOWN':
+                            // LAPIS 3 — kumpulkan untuk warning
+                            unknownTrx.push({ desc, val });
+                            break;
                     }
                 }
             } else {
-                // Fallback lama — tidak ada header yang terdeteksi
+                // Fallback: tidak ada header → coba parse naif
                 lines.forEach(l => {
                     const lower = l.toLowerCase();
-                    const cols = l.split(',');
-                    const vals = cols.map(c => parseFloat(c.replace(/[^0-9.\-]/g,''))).filter(n => !isNaN(n));
-                    if (lower.includes('dari penghasilan') && vals.some(v => v > 0)) {
+                    const cols  = l.split(',');
+                    const vals  = cols.map(c => parseFloat(c.replace(/[^0-9.\-]/g,''))).filter(n => !isNaN(n));
+                    if (CAT.TOPUP_PENGHASILAN.some(k => lower.includes(k)) && vals.some(v => v > 0))
                         adSpend += Math.max(...vals.filter(v => v > 0));
-                    } else if (lower.includes('isi saldo') && vals.some(v => v > 0)) {
+                    else if (CAT.TOPUP_MANUAL.some(k => lower.includes(k)) && vals.some(v => v > 0)
+                             && !CAT.BONUS_SKIP.some(k => lower.includes(k)))
                         adSpend += Math.max(...vals.filter(v => v > 0)) * PPN;
-                    }
                 });
             }
 
-            // Simpan ringkasan untuk ditampilkan
-            // ── KOREKSI: gunakan isiSaldo dari file Income (lebih akurat) ──────────
-            // File Income mencatat total Isi Saldo Otomatis per bulan dari sisi Shopee.
-            // CSV Ads hanya mencatat per transaksi harian — bisa berbeda karena perbedaan
-            // cut-off tanggal atau transaksi lintas bulan.
-            // Jika Income sudah diupload → ganti topupPenghasilan dari CSV dengan isiSaldo Income.
+            // ── Koreksi: gunakan isiSaldo dari Income jika sudah diupload ─────────
+            // Income lebih akurat (cut-off bulanan) vs CSV (cut-off harian)
+            // SELALU gunakan isiSaldo Income bila tersedia — tanpa threshold
             const isiSaldoIncome = rkData.income?.isiSaldo || 0;
             if (isiSaldoIncome > 0) {
-                // Recalculate adSpend: buang topupPenghasilan CSV, pakai isiSaldo Income
                 adSpend = adSpend - topupPenghasilan + isiSaldoIncome;
                 topupPenghasilan = isiSaldoIncome;
             }
+
             const totalAds = Math.round(adSpend);
             rkData.ads = {
-                totalAds,
-                rawAds: adSpend,
-                iklanTerpakai: Math.round(iklanTerpakai),
+                totalAds, rawAds: adSpend, iklanTerpakai: Math.round(iklanTerpakai),
                 topupPenghasilan: Math.round(topupPenghasilan),
                 topupManual: Math.round(topupManual),
                 bonusShopee: Math.round(bonusShopee),
                 ppnAmount: Math.round(ppnAmount),
+                unknownTrx,
             };
+
+            // ── LAPIS 3 — Render warning transaksi tidak dikenali ─────────────────
+            const warnAdsEl = document.getElementById('warnUnknownAds');
+            const warnContainer = document.getElementById('rk_st_ads')?.parentElement;
+            if (unknownTrx.length > 0) {
+                const totalUnknown = unknownTrx.reduce((s, t) => s + Math.abs(t.val), 0);
+                let warnEl = warnAdsEl;
+                if (!warnEl && warnContainer) {
+                    warnEl = document.createElement('div');
+                    warnEl.id = 'warnUnknownAds';
+                    warnEl.style.cssText = 'margin:8px 0;padding:10px 14px;background:#fffbeb;border:1.5px solid #f59e0b;border-radius:8px;font-size:0.78em;color:#92400e;';
+                    warnContainer.appendChild(warnEl);
+                }
+                if (warnEl) {
+                    warnEl.innerHTML = `⚠️ <b>${unknownTrx.length} jenis transaksi CSV belum dikenali</b> (total: ${formatRp(totalUnknown)})<br>
+                    <span style="color:#b45309;">Diasumsikan <b>tidak masuk</b> komponen IKLAN. Periksa manual:<br>
+                    ${unknownTrx.map(t => `• "${t.desc}" = ${formatRp(Math.abs(t.val))}`).join('<br>')}
+                    </span>`;
+                }
+            } else {
+                const warnEl = document.getElementById('warnUnknownAds');
+                if (warnEl) warnEl.remove();
+            }
 
             const sisaSaldo = Math.round(adSpend - iklanTerpakai);
             const ppnInfo = ppnAmount > 0 ? ` | PPN: ${formatRp(Math.round(ppnAmount))}` : '';
@@ -1235,7 +1253,16 @@ function handleRasioUpload(type, input) {
         return;
     }
 
-    readXlsx(file, wb => {
+            // Cari baris header: Urutan,Waktu,Deskripsi,Jumlah,...
+            let hdrIdx = -1;
+            lines.forEach((l, i) => {
+                if (l.toLowerCase().includes('deskripsi') && l.toLowerCase().includes('jumlah')) hdrIdx = i;
+            });
+
+            // ── KONSEP PERHITUNGAN ADS (UPDATED — PPN-AWARE) ────────────────────────
+            // Real cost iklan = kas riil yang keluar dari kantong seller untuk iklan,
+            // sudah termasuk PPN 11% Shopee Ads (berlaku sejak 2022).
+            readXlsx(file, wb => {
         if (type === 'income') parseIncomeSheet(wb, box);
         else if (type === 'order1') parseOrderSheet(wb, 1, box);
         else if (type === 'order2') parseOrderSheet(wb, 2, box);
@@ -1514,22 +1541,28 @@ function parseIncomeSheet(wb, box) {
         if (hdrIdx < 0) { console.warn('Format income tidak dikenali'); return; }
 
         const headers = rows[hdrIdx].map(h=>String(h).trim());
-        const col = kw => headers.findIndex(h=>h.toLowerCase().includes(kw.toLowerCase()));
-        const iNoPesanan=col('No. Pesanan');
-        const iTotal=col('Total Penghasilan'), iHarga=col('Harga Asli Produk');
-        const iAMS=col('Biaya Komisi AMS'), iAdmin=col('Biaya Administrasi');
-        const iLayanan=col('Biaya Layanan'), iProses=col('Biaya Proses Pesanan'), iKampanye=col('Biaya Kampanye');
-        // Biaya Isi Saldo Otomatis — bukan biaya riil, harus di-add back ke totalPenghasilan
-        const iIsiSaldo = col('Biaya Isi Saldo Otomatis');
-        // Ongkir ditanggung seller = Promo Gratis Ongkir dari Penjual + Biaya Program Hemat Biaya Kirim
-        const iOngkirSeller  = col('Promo Gratis Ongkir dari Penjual');
-        const iHematKirim    = col('Biaya Program Hemat Biaya Kirim');
-        // Fallback nama lama
-        const iOngkirSellerAlt = iOngkirSeller < 0 ? (col('Ongkos Kirim Ditanggung Penjual') >= 0 ? col('Ongkos Kirim Ditanggung Penjual') : col('Biaya Kirim Ditanggung Penjual')) : -1;
-        // Retur — Pengembalian Dana ke Pembeli + Ongkos Kirim Pengembalian
-        const iReturDana     = col('Pengembalian Dana ke Pembeli');
-        const iReturOngkir   = col('Ongkos Kirim Pengembalian Barang');
-        // Index No. Pesanan: dynamic (kolom 1 sebagai fallback)
+        // LAPIS 1 — Fuzzy column matching: cari kolom by daftar keyword, ambil yang pertama cocok
+        const fuzzyCol = (...keys) => {
+            for (const k of keys) {
+                const i = headers.findIndex(h => h.toLowerCase().includes(k.toLowerCase()));
+                if (i >= 0) return i;
+            }
+            return -1;
+        };
+        const iNoPesanan = fuzzyCol('No. Pesanan','Nomor Pesanan','Order ID','No Pesanan','No.Pesanan');
+        const iTotal     = fuzzyCol('Total Penghasilan','Total Income','Net Income','Dana Diterima');
+        const iHarga     = fuzzyCol('Harga Asli Produk','Harga Asli','Original Price','Harga Produk');
+        const iAMS       = fuzzyCol('Biaya Komisi AMS','Komisi AMS','AMS Fee','AMS Commission','Shopee Ads Commission');
+        const iAdmin     = fuzzyCol('Biaya Administrasi','Administration Fee','Admin Fee','Biaya Admin');
+        const iLayanan   = fuzzyCol('Biaya Layanan','Service Fee','Layanan');
+        const iProses    = fuzzyCol('Biaya Proses Pesanan','Order Processing Fee','Processing Fee','Biaya Proses');
+        const iKampanye  = fuzzyCol('Biaya Kampanye','Campaign Fee','Kampanye');
+        const iIsiSaldo  = fuzzyCol('Biaya Isi Saldo Otomatis','Isi Saldo Otomatis','Auto Top Up Fee','Top Up Fee');
+        const iOngkirSeller     = fuzzyCol('Promo Gratis Ongkir dari Penjual','Gratis Ongkir Penjual','Seller Free Shipping');
+        const iHematKirim       = fuzzyCol('Biaya Program Hemat Biaya Kirim','Hemat Biaya Kirim','Shipping Discount Program');
+        const iOngkirSellerAlt  = fuzzyCol('Ongkos Kirim Ditanggung Penjual','Ongkir Ditanggung Penjual','Biaya Kirim Ditanggung Penjual');
+        const iReturDana        = fuzzyCol('Pengembalian Dana ke Pembeli','Refund to Buyer','Retur Dana');
+        const iReturOngkir      = fuzzyCol('Ongkos Kirim Pengembalian Barang','Return Shipping Fee','Retur Ongkir');
         const iNoPes = iNoPesanan >= 0 ? iNoPesanan : 1;
         let count=0, totalOngkirSeller=0, totalReturDana=0, totalReturOngkir=0, totalIsiSaldo=0;
 
@@ -1637,16 +1670,21 @@ function parseIncomeSheet(wb, box) {
         setTimeout(syncBiayaStatusBar, 0);
     }
 
-    // ── Recalculate iklan jika file Ads CSV sudah diupload sebelum Income ──
-    // isiSaldo dari Income lebih akurat dari topupPenghasilan di CSV (cut-off berbeda).
+    // ── Recalculate iklan jika CSV Ads sudah diupload sebelum Income ──────────
+    // isiSaldo dari Income SELALU lebih akurat — langsung ganti tanpa threshold
     if (rkData.ads && rkData.income?.isiSaldo > 0) {
         const isiSaldoIncome = rkData.income.isiSaldo;
         const oldTopup = rkData.ads.topupPenghasilan || 0;
-        const diff = isiSaldoIncome - oldTopup;
-        if (Math.abs(diff) > 100) { // ada selisih berarti
-            rkData.ads.totalAds = Math.round(rkData.ads.totalAds + diff);
-            rkData.ads.topupPenghasilan = isiSaldoIncome;
-        }
+        // Selalu recalculate — tidak ada threshold minimum selisih
+        rkData.ads.totalAds = Math.round(rkData.ads.totalAds - oldTopup + isiSaldoIncome);
+        rkData.ads.topupPenghasilan = isiSaldoIncome;
+        // Update tampilan box Ads
+        const boxAds = document.getElementById('boxAds');
+        if (boxAds) setBoxUploaded(boxAds, `✓ ${formatRp(rkData.ads.totalAds)}`);
+        const stAds = document.getElementById('statusAds');
+        if (stAds) stAds.innerText = `✓ ${formatRp(rkData.ads.totalAds)} real cost`;
+        const rkStAds = document.getElementById('rk_st_ads');
+        if (rkStAds) rkStAds.innerText = `Top-up: ${formatRp(rkData.ads.totalAds)} | Terpakai: ${formatRp(rkData.ads.iklanTerpakai||0)}`;
     }
 
     updateRasioDashboard();
@@ -1658,21 +1696,32 @@ function parseOrderSheet(wb, num, box) {
     const rows = XLSX.utils.sheet_to_json(sh, {header:1, defval:''});
 
     let hdrIdx = 0;
-    rows.forEach((r,i) => { if(String(r[0]).toLowerCase().includes('no. pesanan')||String(r[0]).toLowerCase().includes('pesanan')) hdrIdx=i; });
+    rows.forEach((r,i) => {
+        const joined = String(r[0]||'').toLowerCase();
+        if (joined.includes('no. pesanan') || joined.includes('nomor pesanan') ||
+            joined.includes('order id')    || joined.includes('no pesanan')) hdrIdx=i;
+    });
     const headers = rows[hdrIdx].map(h=>String(h).trim());
 
-    const colIdx = k => headers.findIndex(h=>h.toLowerCase().includes(k.toLowerCase()));
-    const iNo        = Math.max(colIdx('No. Pesanan'), 0);
-    const iSku       = colIdx('Nomor Referensi SKU');
-    const iQty       = colIdx('Jumlah');
-    const iRetQty    = colIdx('Returned quantity');
-    const iNamaProd  = colIdx('Nama Produk');
-    const iVariasi   = colIdx('Nama Variasi');
-    const iWaktu     = colIdx('Waktu Pesanan Dibuat');
-    const iWaktuByr  = colIdx('Waktu Pembayaran Dilakukan');
-    const iKota      = colIdx('Kota');
-    const iProvinsi  = colIdx('Provinsi');
-    const iStatus    = colIdx('Status Pesanan');
+    // LAPIS 1 — Fuzzy column matching untuk Order file
+    const fuzzyCol = (...keys) => {
+        for (const k of keys) {
+            const i = headers.findIndex(h => h.toLowerCase().includes(k.toLowerCase()));
+            if (i >= 0) return i;
+        }
+        return -1;
+    };
+    const iNo       = Math.max(fuzzyCol('No. Pesanan','Nomor Pesanan','Order ID','No Pesanan'), 0);
+    const iSku      = fuzzyCol('Nomor Referensi SKU','Ref SKU','SKU Ref','Reference SKU','SKU ID');
+    const iQty      = fuzzyCol('Jumlah','Qty','Quantity','Kuantitas');
+    const iRetQty   = fuzzyCol('Returned quantity','Qty Retur','Return Qty','Jumlah Retur');
+    const iNamaProd = fuzzyCol('Nama Produk','Product Name','Nama Barang');
+    const iVariasi  = fuzzyCol('Nama Variasi','Variation','Varian','Variasi');
+    const iWaktu    = fuzzyCol('Waktu Pesanan Dibuat','Order Time','Waktu Order','Tanggal Pesanan');
+    const iWaktuByr = fuzzyCol('Waktu Pembayaran Dilakukan','Payment Time','Waktu Bayar','Tanggal Bayar');
+    const iKota     = fuzzyCol('Kota','City','Kabupaten');
+    const iProvinsi = fuzzyCol('Provinsi','Province');
+    const iStatus   = fuzzyCol('Status Pesanan','Order Status','Status');
 
     // Set No. Pesanan valid dari Income (untuk filter grafik)
     const incomeNoPesananSet = rkData._incomeNoPesanan || new Set();

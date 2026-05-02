@@ -1253,19 +1253,11 @@ function handleRasioUpload(type, input) {
         return;
     }
 
-            // Cari baris header: Urutan,Waktu,Deskripsi,Jumlah,...
-            let hdrIdx = -1;
-            lines.forEach((l, i) => {
-                if (l.toLowerCase().includes('deskripsi') && l.toLowerCase().includes('jumlah')) hdrIdx = i;
-            });
-
-            // ── KONSEP PERHITUNGAN ADS (UPDATED — PPN-AWARE) ────────────────────────
-            // Real cost iklan = kas riil yang keluar dari kantong seller untuk iklan,
-            // sudah termasuk PPN 11% Shopee Ads (berlaku sejak 2022).
-            readXlsx(file, wb => {
-        if (type === 'income') parseIncomeSheet(wb, box);
-        else if (type === 'order1') parseOrderSheet(wb, 1, box);
-        else if (type === 'order2') parseOrderSheet(wb, 2, box);
+    // ── XLSX FILES: income, order1, order2, performa ─────────────────────────
+    readXlsx(file, wb => {
+        if (type === 'income')   parseIncomeSheet(wb, box);
+        else if (type === 'order1')   parseOrderSheet(wb, 1, box);
+        else if (type === 'order2')   parseOrderSheet(wb, 2, box);
         else if (type === 'performa') parsePerformaSheet(wb, box);
         updateRasioDashboard();
     });

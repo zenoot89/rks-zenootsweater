@@ -344,6 +344,14 @@ async function renderTokoList() {
                        <polyline points="9 18 15 12 9 6"/>
                    </svg>`
             }
+            <div class="toko-item-hapus" onclick="hapusToko('${t.id}','${t.nama}',event)" title="Hapus toko">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2.5">
+                    <polyline points="3 6 5 6 21 6"/>
+                    <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+                    <path d="M10 11v6M14 11v6"/>
+                    <path d="M9 6V4h6v2"/>
+                </svg>
+            </div>
         </div>
     `).join('');
 }
@@ -451,4 +459,40 @@ async function initTokoSession() {
     // Belum ada toko — buka dropdown
     setTimeout(() => openTokoDropdown(), 400);
     return false;
+}
+
+// ── KELOLA TOKO ───────────────────────────────────────────────
+let _kelolaMode = false;
+
+function toggleKelolaToko() {
+    _kelolaMode = !_kelolaMode;
+    const list = document.getElementById('tokoDropdownList');
+    if (list) list.classList.toggle('kelola-mode', _kelolaMode);
+    const btn = document.querySelector('.toko-dropdown-kelola');
+    if (btn) {
+        btn.style.color = _kelolaMode ? '#f87171' : '';
+        btn.style.borderColor = _kelolaMode ? 'rgba(248,113,113,0.4)' : '';
+    }
+}
+
+async function hapusToko(id, nama, e) {
+    e.stopPropagation(); // jangan trigger pilihToko
+    if (!confirm(`Hapus toko "${nama}"?\n\nSemua data rekap & HPP toko ini akan ikut terhapus.`)) return;
+
+    // Jangan hapus toko yang sedang aktif
+    if (id === getAktifTokoId()) {
+        alert('Tidak bisa menghapus toko yang sedang aktif. Pindah ke toko lain dulu.');
+        return;
+    }
+
+    // Hapus dari Supabase
+    await supaFetch(`rekap_bulanan?toko_id=eq.${id}`,   { method: 'DELETE' });
+    await supaFetch(`master_hpp?toko_id=eq.${id}`,       { method: 'DELETE' });
+    await supaFetch(`history_kalkulasi?toko_id=eq.${id}`,{ method: 'DELETE' });
+    await supaFetch(`operasional_bulanan?toko_id=eq.${id}`,{ method: 'DELETE' });
+    await supaFetch(`seller_profile?toko_id=eq.${id}`,   { method: 'DELETE' });
+    await supaFetch(`toko?id=eq.${id}`,                  { method: 'DELETE' });
+
+    // Refresh list
+    await renderTokoList();
 }

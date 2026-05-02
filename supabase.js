@@ -235,172 +235,13 @@ async function initTokoSession() {
 //  MODAL PILIH / TAMBAH TOKO
 // ════════════════════════════════════════════════════════
 
-async function showTokoModal(force = false) {
-    const old = document.getElementById('tokoModal');
-    if (old) old.remove();
 
-    const tokoList = await tokoGetAll();
 
-    const modal = document.createElement('div');
-    modal.id = 'tokoModal';
-    modal.style.cssText = `
-        position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(4px);
-        display:flex;align-items:center;justify-content:center;z-index:99999;
-    `;
 
-    modal.innerHTML = `
-        <div style="background:#1a1d24;border:1px solid #2a2d35;border-radius:16px;
-                    padding:32px;width:440px;max-width:92vw;box-shadow:0 24px 64px rgba(0,0,0,0.6)">
 
-            <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
-                <div style="width:44px;height:44px;background:#ef4444;border-radius:12px;
-                            display:flex;align-items:center;justify-content:center;font-size:22px">🏪</div>
-                <div>
-                    <div style="font-size:17px;font-weight:700;color:#f1f5f9">Pilih Toko Aktif</div>
-                    <div style="font-size:12px;color:#6b7280">Data HPP & Rekap tersimpan terpisah per toko</div>
-                </div>
-            </div>
 
-            <div style="border-bottom:1px solid #2a2d35;margin:16px 0"></div>
 
-            <!-- List toko -->
-            <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;max-height:240px;overflow-y:auto">
-                ${tokoList.length === 0
-                    ? `<div style="color:#6b7280;font-size:13px;text-align:center;padding:20px">
-                         Belum ada toko. Buat toko pertama di bawah.
-                       </div>`
-                    : tokoList.map(t => `
-                        <button onclick="pilihToko('${t.id}','${t.nama}')"
-                            style="background:#0e0f11;border:1px solid #2a2d35;border-radius:10px;
-                                   padding:14px 16px;text-align:left;cursor:pointer;color:#f1f5f9;
-                                   display:flex;align-items:center;justify-content:space-between;
-                                   transition:all 0.15s;width:100%"
-                            onmouseover="this.style.borderColor='#ef4444';this.style.background='#1a0808'"
-                            onmouseout="this.style.borderColor='#2a2d35';this.style.background='#0e0f11'">
-                            <div>
-                                <div style="font-size:14px;font-weight:700">🏪 ${t.nama}</div>
-                                <div style="font-size:11px;color:#6b7280;margin-top:2px">${t.deskripsi||'—'}</div>
-                            </div>
-                            <span style="color:#ef4444;font-size:13px;font-weight:600">Masuk →</span>
-                        </button>
-                    `).join('')
-                }
-            </div>
 
-            <!-- Tambah toko baru -->
-            <div style="background:#0e0f11;border:1px solid #2a2d35;border-radius:10px;padding:16px">
-                <div style="font-size:11px;font-weight:700;color:#6b7280;
-                            text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">
-                    ＋ Tambah Toko Baru
-                </div>
-                <div style="display:flex;gap:8px;margin-bottom:8px">
-                    <input id="inputNamaToko" type="text" placeholder="Nama (cth: ALLEY)"
-                        maxlength="30"
-                        style="flex:1;background:#1a1d24;border:1px solid #2a2d35;border-radius:8px;
-                               color:#f1f5f9;padding:9px 11px;font-size:13px;outline:none;
-                               text-transform:uppercase;font-family:inherit"
-                        oninput="this.value=this.value.toUpperCase()"
-                        onkeydown="if(event.key==='Enter')tambahToko()">
-                    <input id="inputDeskrip" type="text" placeholder="Deskripsi (opsional)"
-                        style="flex:1.6;background:#1a1d24;border:1px solid #2a2d35;border-radius:8px;
-                               color:#f1f5f9;padding:9px 11px;font-size:13px;outline:none;font-family:inherit"
-                        onkeydown="if(event.key==='Enter')tambahToko()">
-                    <button onclick="tambahToko()"
-                        style="background:#ef4444;color:#fff;border:none;border-radius:8px;
-                               padding:9px 16px;cursor:pointer;font-weight:700;font-size:13px;
-                               white-space:nowrap">Buat</button>
-                </div>
-                <div id="tokoErrMsg" style="color:#f87171;font-size:11px;display:none"></div>
-            </div>
-
-            ${!force && _aktivTokoId ? `
-            <div style="margin-top:14px;text-align:center">
-                <button onclick="document.getElementById('tokoModal').remove()"
-                    style="background:transparent;border:none;color:#6b7280;
-                           font-size:12px;cursor:pointer;text-decoration:underline">
-                    Batal — tetap di toko ${_aktivTokoNama||''}
-                </button>
-            </div>` : ''}
-        </div>
-    `;
-    // Append langsung ke body — hindari stacking context dari sidebar/main
-    document.body.appendChild(modal);
-    // Force reflow agar z-index berlaku
-    modal.getBoundingClientRect();
-    setTimeout(() => document.getElementById('inputNamaToko')?.focus(), 150);
-}
-
-async function pilihToko(id, nama) {
-    setAktifToko(id, nama);
-    document.getElementById('tokoModal')?.remove();
-
-    // ── Reset semua data & UI upload box ──────────────────────
-    if (typeof rkData !== 'undefined') {
-        rkData.income           = null;
-        rkData.order1           = null;
-        rkData.order2           = null;
-        rkData.ads              = null;
-        rkData.performa         = null;
-        rkData.periode          = '';
-        rkData._incomeNoPesanan = new Set();
-        rkData._incomeRawRows   = [];
-        rkData._orderRawMap     = {};
-    }
-
-    // ── Reset visual upload box ke state awal ─────────────────
-    ['boxIncome','boxOrder1','boxOrder2','boxAds','boxPerforma'].forEach(boxId => {
-        const box = document.getElementById(boxId);
-        if (!box) return;
-        box.classList.remove('uploaded');
-        const st = box.querySelector('.rk-upload-status');
-        if (st) st.textContent = 'Belum upload';
-    });
-    // Reset input file agar bisa re-upload file yang sama
-    ['fileIncome','fileOrder1','fileOrder2','fileAds','filePerforma'].forEach(fid => {
-        const el = document.getElementById(fid);
-        if (el) el.value = '';
-    });
-    // Reset status text checklist bawah
-    ['statusIncome','statusOrder1','statusOrder2','statusAds'].forEach(sid => {
-        const el = document.getElementById(sid);
-        if (el) { el.textContent = ''; el.style.color = ''; }
-    });
-    ['rk_st_income','rk_st_order1','rk_st_order2','rk_st_ads'].forEach(sid => {
-        const el = document.getElementById(sid);
-        if (el) { el.textContent = '—'; el.style.color = ''; }
-    });
-    // Hapus warning unknown ads
-    document.getElementById('warnUnknownAds')?.remove();
-
-    if (typeof hppMaster !== 'undefined') hppMaster.length = 0;
-    await syncHppFromSupabase();
-    updateTokoUI();
-    if (typeof updateRasioDashboard === 'function') updateRasioDashboard();
-    if (typeof renderRekapTahunan   === 'function') renderRekapTahunan();
-    if (typeof syncBiayaStatusBar   === 'function') syncBiayaStatusBar();
-}
-
-async function tambahToko() {
-    const nama    = (document.getElementById('inputNamaToko')?.value||'').trim().toUpperCase();
-    const deskrip = (document.getElementById('inputDeskrip')?.value||'').trim();
-    const errEl   = document.getElementById('tokoErrMsg');
-    if (!nama) {
-        errEl.textContent = 'Nama toko tidak boleh kosong'; errEl.style.display='block'; return;
-    }
-    const result = await tokoCreate(nama, deskrip);
-    if (!result) {
-        errEl.textContent = 'Gagal membuat toko. Coba lagi.'; errEl.style.display='block'; return;
-    }
-    await pilihToko(result.id, result.nama);
-}
-
-function updateTokoUI() {
-    const nama = getAktifTokoNama();
-    const badge = document.getElementById('tokoBadge');
-    if (badge) badge.textContent = nama ? nama : '— Pilih Toko';
-    const sw = document.querySelector('.toko-switcher-inner');
-    if (sw) sw.classList.toggle('no-toko', !nama);
-}
 
 // ════════════════════════════════════════════════════════
 //  CEK STATUS KONEKSI
@@ -417,4 +258,197 @@ async function checkSupabaseConnection() {
         badge.textContent = '🔴 Offline';
         badge.style.color = '#991b1b'; badge.style.background = '#fee2e2';
     }
+}
+
+// ════════════════════════════════════════════════════════
+//  TOKO DROPDOWN — Lazada vibes
+//  Inline dropdown di sidebar, bukan full-screen modal
+// ════════════════════════════════════════════════════════
+
+let _dropdownOpen = false;
+
+function toggleTokoDropdown() {
+    if (_dropdownOpen) closeTokoDropdown();
+    else openTokoDropdown();
+}
+
+async function openTokoDropdown() {
+    _dropdownOpen = true;
+    const dd = document.getElementById('tokoDropdown');
+    const chev = document.getElementById('tokoChevron');
+    if (dd) dd.classList.add('open');
+    if (chev) chev.classList.add('open');
+
+    // Render list toko
+    await renderTokoList();
+
+    // Tutup kalau klik di luar
+    setTimeout(() => {
+        document.addEventListener('click', _outsideClickHandler);
+    }, 50);
+}
+
+function closeTokoDropdown() {
+    _dropdownOpen = false;
+    const dd = document.getElementById('tokoDropdown');
+    const chev = document.getElementById('tokoChevron');
+    if (dd) dd.classList.remove('open');
+    if (chev) chev.classList.remove('open');
+    // Reset add form
+    const addInput = document.getElementById('tokoAddInput');
+    if (addInput) addInput.style.display = 'none';
+    const err = document.getElementById('tokoAddErr');
+    if (err) err.style.display = 'none';
+    document.removeEventListener('click', _outsideClickHandler);
+}
+
+function _outsideClickHandler(e) {
+    const switcher = document.getElementById('tokoSwitcher');
+    if (switcher && !switcher.contains(e.target)) {
+        closeTokoDropdown();
+    }
+}
+
+async function renderTokoList() {
+    const list = document.getElementById('tokoDropdownList');
+    if (!list) return;
+    list.innerHTML = '<div class="toko-dropdown-loading">Memuat...</div>';
+
+    const tokoList = await tokoGetAll();
+    const aktifId  = getAktifTokoId();
+
+    if (!tokoList || tokoList.length === 0) {
+        list.innerHTML = '<div class="toko-dropdown-loading">Belum ada toko. Tambah di bawah.</div>';
+        return;
+    }
+
+    list.innerHTML = tokoList.map(t => `
+        <div class="toko-item ${t.id === aktifId ? 'active' : ''}"
+             onclick="pilihTokoDropdown('${t.id}','${t.nama}')">
+            <div class="toko-item-icon">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+                     stroke="${t.id === aktifId ? 'white' : 'rgba(255,255,255,0.45)'}"
+                     stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+                    <polyline points="9 22 9 12 15 12 15 22"/>
+                </svg>
+            </div>
+            <div class="toko-item-info">
+                <div class="toko-item-nama">${t.nama}</div>
+                <div class="toko-item-desc">${t.deskripsi || '—'}</div>
+            </div>
+            ${t.id === aktifId
+                ? '<div class="toko-item-badge">Aktif</div>'
+                : `<svg class="toko-item-arrow" width="13" height="13" viewBox="0 0 24 24"
+                       fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2.5">
+                       <polyline points="9 18 15 12 9 6"/>
+                   </svg>`
+            }
+        </div>
+    `).join('');
+}
+
+async function pilihTokoDropdown(id, nama) {
+    closeTokoDropdown();
+    setAktifToko(id, nama);
+
+    // Reset semua data & UI upload box
+    if (typeof rkData !== 'undefined') {
+        rkData.income           = null;
+        rkData.order1           = null;
+        rkData.order2           = null;
+        rkData.ads              = null;
+        rkData.performa         = null;
+        rkData.periode          = '';
+        rkData._incomeNoPesanan = new Set();
+        rkData._incomeRawRows   = [];
+        rkData._orderRawMap     = {};
+    }
+
+    // Reset visual upload box
+    ['boxIncome','boxOrder1','boxOrder2','boxAds','boxPerforma'].forEach(boxId => {
+        const box = document.getElementById(boxId);
+        if (!box) return;
+        box.classList.remove('uploaded');
+        const st = box.querySelector('.rk-upload-status');
+        if (st) st.textContent = 'Belum upload';
+    });
+    ['fileIncome','fileOrder1','fileOrder2','fileAds','filePerforma'].forEach(fid => {
+        const el = document.getElementById(fid);
+        if (el) el.value = '';
+    });
+    ['statusIncome','statusOrder1','statusOrder2','statusAds'].forEach(sid => {
+        const el = document.getElementById(sid);
+        if (el) { el.textContent = ''; el.style.color = ''; }
+    });
+    ['rk_st_income','rk_st_order1','rk_st_order2','rk_st_ads'].forEach(sid => {
+        const el = document.getElementById(sid);
+        if (el) { el.textContent = '—'; el.style.color = ''; }
+    });
+    document.getElementById('warnUnknownAds')?.remove();
+
+    if (typeof hppMaster !== 'undefined') hppMaster.length = 0;
+    await syncHppFromSupabase();
+    updateTokoUI();
+    if (typeof updateRasioDashboard === 'function') updateRasioDashboard();
+    if (typeof renderRekapTahunan   === 'function') renderRekapTahunan();
+    if (typeof syncBiayaStatusBar   === 'function') syncBiayaStatusBar();
+}
+
+function showAddTokoInline() {
+    const addInput = document.getElementById('tokoAddInput');
+    const addBtn   = document.querySelector('.toko-dropdown-add');
+    if (addInput) addInput.style.display = 'flex';
+    if (addBtn)   addBtn.style.display   = 'none';
+    setTimeout(() => document.getElementById('inlineNamaToko')?.focus(), 50);
+}
+
+async function tambahTokoInline() {
+    const nama    = (document.getElementById('inlineNamaToko')?.value || '').trim().toUpperCase();
+    const deskrip = (document.getElementById('inlineDeskrip')?.value  || '').trim();
+    const errEl   = document.getElementById('tokoAddErr');
+
+    if (!nama) {
+        if (errEl) { errEl.textContent = 'Nama toko tidak boleh kosong'; errEl.style.display = 'block'; }
+        return;
+    }
+    const result = await tokoCreate(nama, deskrip);
+    if (!result) {
+        if (errEl) { errEl.textContent = 'Gagal membuat toko. Coba lagi.'; errEl.style.display = 'block'; }
+        return;
+    }
+    // Langsung masuk toko baru
+    await pilihTokoDropdown(result.id, result.nama);
+}
+
+function updateTokoUI() {
+    const nama = getAktifTokoNama();
+    const badge = document.getElementById('tokoBadge');
+    if (badge) badge.textContent = nama || '— Pilih Toko';
+    const sw = document.querySelector('.toko-switcher-inner');
+    if (sw) sw.classList.toggle('no-toko', !nama);
+}
+
+// Backward compat — beberapa tempat masih panggil showTokoModal
+function showTokoModal(force = false) {
+    openTokoDropdown();
+}
+
+// Init session — panggil saat app load
+async function initTokoSession() {
+    const savedId   = localStorage.getItem('rks_aktif_toko_id');
+    const savedNama = localStorage.getItem('rks_aktif_toko_nama');
+
+    if (savedId && savedNama) {
+        const data = await supaFetch(`toko?id=eq.${savedId}&select=id,nama&limit=1`);
+        if (data && data[0]) {
+            setAktifToko(data[0].id, data[0].nama);
+            await syncHppFromSupabase();
+            updateTokoUI();
+            return true;
+        }
+    }
+    // Belum ada toko — buka dropdown
+    setTimeout(() => openTokoDropdown(), 400);
+    return false;
 }

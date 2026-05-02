@@ -516,3 +516,151 @@
 
 /* ── Pastikan app wrapper tidak buat stacking context ── */
 .app-wrapper, .main-content, .tab-panel { isolation: auto !important; }
+
+/* ══════════════════════════════════════════════════
+   TOKO SWITCHER — Lazada vibes (v2)
+   ══════════════════════════════════════════════════ */
+.toko-switcher {
+    margin: 0 10px 8px;
+    position: relative;
+}
+.toko-switcher-inner {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 9px 10px 7px;
+    background: #252525;
+    border: 0.5px solid rgba(238,77,45,0.35);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+}
+.toko-switcher-inner:hover {
+    background: #2a2a2a;
+    border-color: rgba(238,77,45,0.6);
+}
+.toko-switcher-icon {
+    width: 30px; height: 30px;
+    background: #ee4d2d;
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+}
+.toko-switcher-info { flex: 1; min-width: 0; }
+.toko-switcher-label {
+    font-size: 9px; font-weight: 600;
+    color: rgba(255,255,255,0.38);
+    letter-spacing: 1.3px; text-transform: uppercase;
+    margin-bottom: 1px;
+}
+.toko-switcher-nama {
+    font-size: 13px; font-weight: 600;
+    color: #fff;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.toko-switcher-chevron { flex-shrink: 0; transition: transform 0.2s; }
+.toko-switcher-chevron.open { transform: rotate(180deg); }
+.toko-switcher-hint {
+    display: flex; align-items: center; gap: 4px;
+    font-size: 10px; color: rgba(255,255,255,0.28);
+    padding: 4px 4px 0;
+}
+
+/* ── DROPDOWN ──────────────────────────────────── */
+.toko-dropdown {
+    display: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0; right: 0;
+    background: #1e1e1e;
+    border: 0.5px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    z-index: 999999;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    overflow: hidden;
+}
+.toko-dropdown.open { display: block; }
+.toko-dropdown-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 11px 12px 10px;
+    border-bottom: 0.5px solid rgba(255,255,255,0.07);
+}
+.toko-dropdown-title { font-size: 12px; font-weight: 600; color: #fff; }
+.toko-dropdown-sub { font-size: 10px; color: rgba(255,255,255,0.38); margin-top: 1px; }
+.toko-dropdown-close {
+    width: 22px; height: 22px;
+    background: rgba(255,255,255,0.07);
+    border: none; border-radius: 5px;
+    color: rgba(255,255,255,0.45);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.toko-dropdown-close:hover { background: rgba(255,255,255,0.12); color: #fff; }
+.toko-dropdown-list { padding: 6px; max-height: 200px; overflow-y: auto; }
+.toko-dropdown-loading { font-size: 11px; color: rgba(255,255,255,0.35); padding: 8px 6px; }
+
+/* Item toko */
+.toko-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 8px;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: background 0.12s;
+    margin-bottom: 4px;
+    border: 0.5px solid transparent;
+}
+.toko-item:last-child { margin-bottom: 0; }
+.toko-item:hover { background: rgba(255,255,255,0.06); }
+.toko-item.active {
+    background: rgba(238,77,45,0.1);
+    border-color: rgba(238,77,45,0.3);
+}
+.toko-item-icon {
+    width: 32px; height: 32px;
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+}
+.toko-item.active .toko-item-icon { background: #ee4d2d; }
+.toko-item:not(.active) .toko-item-icon { background: rgba(255,255,255,0.07); }
+.toko-item-info { flex: 1; min-width: 0; }
+.toko-item-nama { font-size: 12px; font-weight: 600; color: #fff; }
+.toko-item:not(.active) .toko-item-nama { color: rgba(255,255,255,0.75); }
+.toko-item-desc { font-size: 10px; color: rgba(255,255,255,0.35); margin-top: 1px; }
+.toko-item-badge {
+    font-size: 9px; font-weight: 700; letter-spacing: 0.5px;
+    background: #ee4d2d; color: #fff;
+    padding: 2px 6px; border-radius: 4px; text-transform: uppercase; flex-shrink: 0;
+}
+.toko-item-arrow { flex-shrink: 0; opacity: 0.3; }
+
+/* Footer */
+.toko-dropdown-footer {
+    padding: 6px;
+    border-top: 0.5px solid rgba(255,255,255,0.06);
+}
+.toko-dropdown-add {
+    display: flex; align-items: center; gap: 7px;
+    padding: 8px 8px;
+    border: 0.5px dashed rgba(255,255,255,0.12);
+    border-radius: 7px;
+    color: rgba(255,255,255,0.4);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.12s;
+}
+.toko-dropdown-add:hover { border-color: rgba(255,255,255,0.25); color: rgba(255,255,255,0.6); }
+.toko-dropdown-addinput {
+    display: flex; gap: 5px; padding: 6px 2px 0;
+}
+.toko-dropdown-addinput input {
+    flex: 1; background: rgba(255,255,255,0.07);
+    border: 0.5px solid rgba(255,255,255,0.12); border-radius: 6px;
+    color: #fff; font-size: 11px; padding: 6px 8px; outline: none;
+}
+.toko-dropdown-addinput input:focus { border-color: #ee4d2d; }
+.toko-dropdown-addinput button {
+    background: #ee4d2d; color: #fff; border: none;
+    border-radius: 6px; padding: 6px 10px;
+    font-size: 11px; font-weight: 600; cursor: pointer; flex-shrink: 0;
+}
+.toko-dropdown-addinput button:hover { background: #d94428; }

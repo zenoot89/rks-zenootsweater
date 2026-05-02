@@ -27,9 +27,9 @@
     <!-- TOKO SWITCHER — Lazada vibes               -->
     <!-- ══════════════════════════════════════════ -->
     <div class="toko-switcher" id="tokoSwitcher">
-      <div class="toko-switcher-inner" onclick="typeof showTokoModal==='function'&&showTokoModal(false)" title="Klik untuk ganti toko">
+      <div class="toko-switcher-inner" id="tokoSwitcherBtn" onclick="toggleTokoDropdown()" title="Klik untuk ganti toko">
         <div class="toko-switcher-icon">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
             <polyline points="9 22 9 12 15 12 15 22"/>
           </svg>
@@ -38,14 +38,46 @@
           <div class="toko-switcher-label">TOKO AKTIF</div>
           <div class="toko-switcher-nama" id="tokoBadge">— Pilih Toko</div>
         </div>
-        <div class="toko-switcher-chevron">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <div class="toko-switcher-chevron" id="tokoChevron">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#ee4d2d" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="6 9 12 15 18 9"/>
           </svg>
         </div>
       </div>
+      <!-- Klik untuk ganti label -->
+      <div class="toko-switcher-hint">
+        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+        Klik untuk ganti toko
+      </div>
+
+      <!-- DROPDOWN SHEET -->
+      <div class="toko-dropdown" id="tokoDropdown">
+        <div class="toko-dropdown-header">
+          <div>
+            <div class="toko-dropdown-title">Pilih Toko</div>
+            <div class="toko-dropdown-sub">Data tersimpan terpisah per toko</div>
+          </div>
+          <button class="toko-dropdown-close" onclick="closeTokoDropdown()">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div class="toko-dropdown-list" id="tokoDropdownList">
+          <div class="toko-dropdown-loading">Memuat daftar toko...</div>
+        </div>
+        <div class="toko-dropdown-footer">
+          <div class="toko-dropdown-add" onclick="showAddTokoInline()">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Tambah toko baru
+          </div>
+          <div class="toko-dropdown-addinput" id="tokoAddInput" style="display:none">
+            <input type="text" id="inlineNamaToko" placeholder="Nama toko" maxlength="30" oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter')tambahTokoInline()">
+            <input type="text" id="inlineDeskrip" placeholder="Deskripsi" onkeydown="if(event.key==='Enter')tambahTokoInline()">
+            <button onclick="tambahTokoInline()">Buat</button>
+          </div>
+          <div id="tokoAddErr" style="display:none;font-size:10px;color:#f87171;padding:0 2px;margin-top:4px"></div>
+        </div>
+      </div>
     </div>
-    <!-- ══════════════════════════════════════════ -->
 
     <nav class="sidebar-nav">
       <!-- DRAWER 1: RASIO KEUANGAN -->

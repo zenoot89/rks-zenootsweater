@@ -1092,24 +1092,29 @@ function handleRasioUpload(type, input) {
                 // Dipotong dari penghasilan Shopee — sudah include PPN
                 TOPUP_PENGHASILAN: ['dari penghasilan'],
                 // Top-up manual dari kantong seller — belum include PPN → × 1.11
-                TOPUP_MANUAL: ['isi saldo otomatis', 'top up', 'topup', 'isi saldo', 'saldo iklan dan bonus'],
+                // 'Saldo Iklan dan Bonus Saldo Iklan' = top-up via Shopee Pay (BUKAN bonus gratis)
+                TOPUP_MANUAL: ['isi saldo otomatis', 'top up', 'topup', 'isi saldo',
+                               'saldo iklan dan bonus', 'shopee pay topup', 'transfer saldo'],
                 // Gratis dari Shopee — BUKAN uang keluar → SKIP
-                BONUS_SKIP: ['bonus saldo', 'bonus iklan', 'cashback', 'gratis saldo', 'reward', 'hadiah', 'komisi afiliasi'],
+                // Hanya 'Bonus Saldo Iklan' yang berdiri sendiri (tanpa kata "dan")
+                BONUS_SKIP: ['cashback', 'gratis saldo', 'reward saldo', 'hadiah saldo'],
                 // Pengeluaran saldo iklan — tracking saja, bukan kas keluar
-                IKLAN_SPEND: ['iklan produk', 'product ad', 'ads spend', 'deduction for', 'campaign spend',
-                              'flash sale fee', 'iklan toko', 'iklan pencarian', 'biaya iklan'],
+                IKLAN_SPEND: ['iklan produk', 'product ad', 'ads spend', 'deduction for',
+                              'campaign spend', 'flash sale fee', 'iklan toko',
+                              'iklan pencarian', 'biaya iklan'],
             };
 
             function kategorikan(desc) {
                 const d = desc.toLowerCase().trim();
-                // Cek BONUS dulu (prioritas tinggi — jangan salah hitung sebagai topup)
-                if (CAT.BONUS_SKIP.some(k => d.includes(k))) return 'BONUS';
-                // Cek TOPUP dari Penghasilan
+                // Cek TOPUP_PENGHASILAN dulu (prioritas tertinggi)
                 if (CAT.TOPUP_PENGHASILAN.some(k => d.includes(k))) return 'TOPUP_PENGHASILAN';
-                // Cek TOPUP Manual — pastikan bukan "dari penghasilan"
-                if (CAT.TOPUP_MANUAL.some(k => d.includes(k))) return 'TOPUP_MANUAL';
-                // Cek Pengeluaran Iklan
+                // Cek IKLAN_SPEND
                 if (CAT.IKLAN_SPEND.some(k => d.includes(k))) return 'IKLAN_SPEND';
+                // Cek BONUS murni — hanya yang benar-benar gratis dari Shopee
+                // 'Bonus Saldo Iklan' (berdiri sendiri, tanpa 'dan') → SKIP
+                if (d === 'bonus saldo iklan' || CAT.BONUS_SKIP.some(k => d.includes(k))) return 'BONUS';
+                // Cek TOPUP_MANUAL — termasuk 'Saldo Iklan dan Bonus Saldo Iklan' (top-up via Shopee Pay)
+                if (CAT.TOPUP_MANUAL.some(k => d.includes(k))) return 'TOPUP_MANUAL';
                 return 'UNKNOWN';
             }
 

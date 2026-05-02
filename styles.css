@@ -513,3 +513,6 @@
     align-items: center !important;
     justify-content: center !important;
 }
+
+/* ── Pastikan app wrapper tidak buat stacking context ── */
+.app-wrapper, .main-content, .tab-panel { isolation: auto !important; }

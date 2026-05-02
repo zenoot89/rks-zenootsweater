@@ -323,8 +323,11 @@ async function showTokoModal(force = false) {
             </div>` : ''}
         </div>
     `;
+    // Append langsung ke body — hindari stacking context dari sidebar/main
     document.body.appendChild(modal);
-    setTimeout(() => document.getElementById('inputNamaToko')?.focus(), 100);
+    // Force reflow agar z-index berlaku
+    modal.getBoundingClientRect();
+    setTimeout(() => document.getElementById('inputNamaToko')?.focus(), 150);
 }
 
 async function pilihToko(id, nama) {

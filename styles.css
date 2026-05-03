@@ -736,3 +736,12 @@
 }
 .md-toko-btn-edit:hover { border-color: #3730a3; color: #3730a3; background: #f0f0ff; }
 .md-toko-btn-del:hover  { border-color: #ef4444; background: #fff0f0; }
+
+/* md-toko-item editing state */
+.md-toko-item.editing {
+    background: #fff7f5;
+    border-color: #ee4d2d !important;
+    box-shadow: 0 0 0 2px rgba(238,77,45,0.1);
+}
+.md-toko-item.editing .md-toko-nama { color: #ee4d2d !important; }
+.md-toko-item { cursor: pointer; }

@@ -878,27 +878,129 @@ function updateAcosDisplay() {
     document.getElementById('md_acos').value = roas > 0 ? (100/roas).toFixed(1) + '%' : '—';
 }
 
+// ── Setting aktif yang sedang diedit (bisa beda dari toko aktif dashboard) ──
+let _editTokoId   = null; // toko_id yang sedang diedit di Master Data
+let _editTokoNama = null;
+
 function syncMasterToMain() {
     updateAcosDisplay();
-    const roas = parseFloat(document.getElementById('md_roas').value) || 0;
+    // Tidak auto-save — user harus klik Save
+    // Hanya update Kalkulator Proyeksi secara realtime jika toko yang diedit = toko aktif dashboard
+    if (_editTokoId && _editTokoId === (typeof getAktifTokoId === 'function' ? getAktifTokoId() : null)) {
+        const roas     = parseFloat(document.getElementById('md_roas').value) || 0;
+        const oprTotal = parseVal('md_opr_total');
+        const oprPct   = parseFloat(document.getElementById('md_opr_pct').value) || 0;
+        const npm      = parseFloat(document.getElementById('md_npm').value) || 0;
+        const maxOrder = parseVal('md_max_order');
+        if (roas > 0)     { const el = document.getElementById('roas');         if(el){ el.value = roas; syncAds && syncAds('roas'); } }
+        if (oprTotal > 0) { const el = document.getElementById('oprTotalMonth'); if(el) el.value = oprTotal.toLocaleString('id-ID'); }
+        if (oprPct > 0)   { const el = document.getElementById('oprPctTarget'); if(el) el.value = oprPct; }
+        if (npm > 0)      { const el = document.getElementById('targetNpm');    if(el) el.value = npm; }
+        if (maxOrder > 0) { const el = document.getElementById('maxOrderBln');  if(el) el.value = maxOrder.toLocaleString('id-ID'); }
+        if (typeof cleanAndHitung === 'function') cleanAndHitung();
+    }
+}
+
+// Load setting toko tertentu ke 3 blok kanan
+async function loadTokoSetting(tokoId, tokoNama) {
+    _editTokoId   = tokoId;
+    _editTokoNama = tokoNama;
+
+    // Highlight toko yang dipilih di list
+    document.querySelectorAll('.md-toko-item').forEach(el => {
+        el.classList.toggle('editing', el.dataset.tokoid === tokoId);
+    });
+
+    // Update label
+    const lbl = document.getElementById('mdSettingLabel');
+    if (lbl) lbl.textContent = `Setting: ${tokoNama}`;
+
+    // Tampilkan 3 blok setting
+    const settingWrap = document.getElementById('mdSettingWrap');
+    if (settingWrap) settingWrap.style.display = 'block';
+
+    // Load dari Supabase toko_setting
+    let setting = null;
+    if (typeof supaFetch === 'function') {
+        const rows = await supaFetch(`toko_setting?toko_id=eq.${tokoId}&select=*&limit=1`);
+        if (rows && rows[0]) setting = rows[0];
+    }
+    // Fallback localStorage per toko
+    if (!setting) {
+        const saved = localStorage.getItem(`masterOps_${tokoId}`);
+        if (saved) setting = JSON.parse(saved);
+    }
+
+    // Isi form
+    const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.value = val || ''; };
+    setVal('md_roas',      setting?.roas      || '');
+    setVal('md_opr_total', setting?.opr_total ? parseInt(setting.opr_total).toLocaleString('id-ID') : '');
+    setVal('md_opr_pct',   setting?.opr_pct   || '');
+    setVal('md_npm',       setting?.npm_target || '');
+    setVal('md_max_order', setting?.max_order  ? parseInt(setting.max_order).toLocaleString('id-ID') : '');
+    updateAcosDisplay();
+
+    // Tampilkan tombol Save
+    const saveBtn = document.getElementById('mdSaveSettingBtn');
+    if (saveBtn) saveBtn.style.display = 'block';
+}
+
+// Save setting toko ke Supabase
+async function saveTokoPengaturan() {
+    if (!_editTokoId) { alert('Pilih toko dulu.'); return; }
+
+    const roas     = parseFloat(document.getElementById('md_roas').value) || 0;
     const oprTotal = parseVal('md_opr_total');
-    const oprPct = parseFloat(document.getElementById('md_opr_pct').value) || 0;
-    const npm = parseFloat(document.getElementById('md_npm').value) || 0;
+    const oprPct   = parseFloat(document.getElementById('md_opr_pct').value) || 0;
+    const npm      = parseFloat(document.getElementById('md_npm').value) || 0;
     const maxOrder = parseVal('md_max_order');
-    if (roas > 0) { document.getElementById('roas').value = roas; syncAds('roas'); }
-    if (oprTotal > 0) { document.getElementById('oprTotalMonth').value = oprTotal.toLocaleString('id-ID'); }
-    if (oprPct > 0) { document.getElementById('oprPctTarget').value = oprPct; }
-    if (npm > 0) { document.getElementById('targetNpm').value = npm; }
-    if (maxOrder > 0) { document.getElementById('maxOrderBln').value = maxOrder.toLocaleString('id-ID'); }
-    localStorage.setItem('masterOps', JSON.stringify({
-        roas: document.getElementById('md_roas').value,
-        opr_total: document.getElementById('md_opr_total').value,
-        opr_pct: document.getElementById('md_opr_pct').value,
-        npm: document.getElementById('md_npm').value,
-        max_order: document.getElementById('md_max_order').value
-    }));
-    cleanAndHitung();
-    updateRasioDashboard();
+    const acos     = roas > 0 ? parseFloat((100/roas).toFixed(1)) : 0;
+
+    const payload = {
+        toko_id: _editTokoId, roas, acos,
+        opr_total: oprTotal, opr_pct: oprPct,
+        npm_target: npm, max_order: maxOrder
+    };
+
+    // Simpan ke Supabase
+    if (typeof supaFetch === 'function') {
+        await supaFetch('toko_setting?on_conflict=toko_id', {
+            method: 'POST',
+            headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+            body: JSON.stringify(payload)
+        });
+    }
+    // Backup localStorage per toko
+    localStorage.setItem(`masterOps_${_editTokoId}`, JSON.stringify(payload));
+
+    // Jika toko yang disimpan = toko aktif dashboard → sync ke Kalkulator
+    if (_editTokoId === (typeof getAktifTokoId === 'function' ? getAktifTokoId() : null)) {
+        if (roas > 0)     { const el = document.getElementById('roas');         if(el){ el.value = roas; typeof syncAds === 'function' && syncAds('roas'); } }
+        if (oprTotal > 0) { const el = document.getElementById('oprTotalMonth'); if(el) el.value = oprTotal.toLocaleString('id-ID'); }
+        if (oprPct > 0)   { const el = document.getElementById('oprPctTarget'); if(el) el.value = oprPct; }
+        if (npm > 0)      { const el = document.getElementById('targetNpm');    if(el) el.value = npm; }
+        if (maxOrder > 0) { const el = document.getElementById('maxOrderBln');  if(el) el.value = maxOrder.toLocaleString('id-ID'); }
+        localStorage.setItem('masterOps', JSON.stringify({
+            roas: roas||'', opr_total: document.getElementById('md_opr_total').value,
+            opr_pct: oprPct||'', npm: npm||'', max_order: document.getElementById('md_max_order').value
+        }));
+        if (typeof cleanAndHitung === 'function') cleanAndHitung();
+        if (typeof updateRasioDashboard === 'function') updateRasioDashboard();
+    }
+
+    // Toast
+    const t = document.createElement('div');
+    t.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#166534;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.2)';
+    t.textContent = `✅ Setting ${_editTokoNama} disimpan`;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 2500);
+}
+
+// Load setting toko aktif saat init
+async function loadSettingTokoAktif() {
+    const tid   = typeof getAktifTokoId   === 'function' ? getAktifTokoId()   : null;
+    const tnama = typeof getAktifTokoNama === 'function' ? getAktifTokoNama() : null;
+    if (tid && tnama) await loadTokoSetting(tid, tnama);
 }
 
 function toggleHppPaste() {
@@ -4458,7 +4560,7 @@ async function renderMasterTokoList() {
     if (!wrap) return;
     wrap.innerHTML = '<div style="font-size:0.78em;color:#bbb;text-align:center;padding:8px;">Memuat...</div>';
 
-    const list   = await tokoGetAll();
+    const list    = await tokoGetAll();
     const aktifId = getAktifTokoId();
     _masterTokoEdits = {};
 
@@ -4468,20 +4570,21 @@ async function renderMasterTokoList() {
     }
 
     wrap.innerHTML = list.map(t => `
-        <div class="md-toko-item ${t.id === aktifId ? 'active' : ''}" id="mdtoko_${t.id}">
+        <div class="md-toko-item ${t.id === aktifId ? 'active' : ''} ${_editTokoId === t.id ? 'editing' : ''}"
+             id="mdtoko_${t.id}" data-tokoid="${t.id}"
+             onclick="loadTokoSetting('${t.id}','${t.nama}')">
             <div class="md-toko-icon">
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
                      stroke="${t.id === aktifId ? 'white' : '#aaa'}" stroke-width="2.5">
                     <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
                 </svg>
             </div>
-            <!-- Tampilan normal -->
             <div class="md-toko-nama" id="mdnama_${t.id}">${t.nama}</div>
-            <!-- Input edit (tersembunyi) -->
             <input class="md-toko-input" id="mdinput_${t.id}" value="${t.nama}"
-                   style="display:none;" oninput="_masterTokoEdits['${t.id}']=this.value.toUpperCase();this.value=this.value.toUpperCase()">
-            <!-- Aksi (muncul saat mode kelola) -->
-            <div class="md-toko-aksi" id="mdaksi_${t.id}" style="display:none;">
+                   style="display:none;"
+                   onclick="event.stopPropagation()"
+                   oninput="_masterTokoEdits['${t.id}']=this.value.toUpperCase();this.value=this.value.toUpperCase()">
+            <div class="md-toko-aksi" id="mdaksi_${t.id}" style="display:none;" onclick="event.stopPropagation()">
                 <button onclick="mdEditToko('${t.id}')" title="Edit nama" class="md-toko-btn-edit">
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                 </button>
@@ -4491,6 +4594,12 @@ async function renderMasterTokoList() {
             </div>
         </div>
     `).join('');
+
+    // Auto-load toko aktif saat pertama render
+    if (!_editTokoId && aktifId) {
+        const aktifToko = list.find(t => t.id === aktifId);
+        if (aktifToko) await loadTokoSetting(aktifToko.id, aktifToko.nama);
+    }
 }
 
 function toggleMasterKelolaToko() {

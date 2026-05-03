@@ -4426,3 +4426,165 @@ function exportBiayaPDF() {
     if (win) win.focus();
 }
 
+
+// ════════════════════════════════════════════════════════
+//  MASTER DATA TOKO — Daftar Toko (kanan atas)
+// ════════════════════════════════════════════════════════
+
+let _masterKelolaMode = false;
+let _masterTokoEdits  = {}; // id → nama baru (untuk save)
+
+async function renderMasterTokoList() {
+    const wrap = document.getElementById('masterTokoList');
+    if (!wrap) return;
+    wrap.innerHTML = '<div style="font-size:0.78em;color:#bbb;text-align:center;padding:8px;">Memuat...</div>';
+
+    const list   = await tokoGetAll();
+    const aktifId = getAktifTokoId();
+    _masterTokoEdits = {};
+
+    if (!list || list.length === 0) {
+        wrap.innerHTML = '<div style="font-size:0.78em;color:#bbb;text-align:center;padding:8px;">Belum ada toko.</div>';
+        return;
+    }
+
+    wrap.innerHTML = list.map(t => `
+        <div class="md-toko-item ${t.id === aktifId ? 'active' : ''}" id="mdtoko_${t.id}">
+            <div class="md-toko-icon">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+                     stroke="${t.id === aktifId ? 'white' : '#aaa'}" stroke-width="2.5">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+                </svg>
+            </div>
+            <!-- Tampilan normal -->
+            <div class="md-toko-nama" id="mdnama_${t.id}">${t.nama}</div>
+            <!-- Input edit (tersembunyi) -->
+            <input class="md-toko-input" id="mdinput_${t.id}" value="${t.nama}"
+                   style="display:none;" oninput="_masterTokoEdits['${t.id}']=this.value.toUpperCase();this.value=this.value.toUpperCase()">
+            <!-- Aksi (muncul saat mode kelola) -->
+            <div class="md-toko-aksi" id="mdaksi_${t.id}" style="display:none;">
+                <button onclick="mdEditToko('${t.id}')" title="Edit nama" class="md-toko-btn-edit">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </button>
+                <button onclick="mdHapusToko('${t.id}','${t.nama}')" title="Hapus toko" class="md-toko-btn-del">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function toggleMasterKelolaToko() {
+    _masterKelolaMode = !_masterKelolaMode;
+    const addRow   = document.getElementById('masterAddTokoRow');
+    const saveWrap = document.getElementById('masterSaveWrap');
+    const btnGear  = document.getElementById('btnTokoGerigi');
+
+    if (addRow)   addRow.style.display   = _masterKelolaMode ? 'block' : 'none';
+    if (saveWrap) saveWrap.style.display = _masterKelolaMode ? 'block' : 'none';
+    if (btnGear)  {
+        btnGear.style.borderColor = _masterKelolaMode ? '#ee4d2d' : '#e0e0e0';
+        btnGear.style.color       = _masterKelolaMode ? '#ee4d2d' : '#888';
+    }
+
+    // Tampilkan/sembunyikan tombol aksi per toko
+    document.querySelectorAll('[id^="mdaksi_"]').forEach(el => {
+        el.style.display = _masterKelolaMode ? 'flex' : 'none';
+    });
+}
+
+function mdEditToko(id) {
+    const namaEl  = document.getElementById('mdnama_'  + id);
+    const inputEl = document.getElementById('mdinput_' + id);
+    if (!namaEl || !inputEl) return;
+    const isEditing = inputEl.style.display !== 'none';
+    if (isEditing) {
+        // Selesai edit — tampilkan nama baru
+        namaEl.textContent = inputEl.value || namaEl.textContent;
+        namaEl.style.display  = '';
+        inputEl.style.display = 'none';
+    } else {
+        // Masuk mode edit
+        namaEl.style.display  = 'none';
+        inputEl.style.display = '';
+        inputEl.focus();
+        inputEl.select();
+    }
+}
+
+async function mdHapusToko(id, nama) {
+    if (!confirm(`Hapus toko "${nama}"?\n\nSemua data rekap & HPP toko ini akan terhapus.`)) return;
+    if (id === getAktifTokoId()) {
+        alert('Tidak bisa menghapus toko yang sedang aktif. Pindah ke toko lain dulu.');
+        return;
+    }
+    await supaFetch(`rekap_bulanan?toko_id=eq.${id}`,    { method: 'DELETE' });
+    await supaFetch(`master_hpp?toko_id=eq.${id}`,        { method: 'DELETE' });
+    await supaFetch(`history_kalkulasi?toko_id=eq.${id}`, { method: 'DELETE' });
+    await supaFetch(`operasional_bulanan?toko_id=eq.${id}`,{ method: 'DELETE' });
+    await supaFetch(`seller_profile?toko_id=eq.${id}`,    { method: 'DELETE' });
+    await supaFetch(`toko?id=eq.${id}`,                   { method: 'DELETE' });
+    await renderMasterTokoList();
+}
+
+async function masterTambahToko() {
+    const nama    = (document.getElementById('masterNamaToko')?.value || '').trim().toUpperCase();
+    const deskrip = (document.getElementById('masterDeskrip')?.value  || '').trim();
+    const errEl   = document.getElementById('masterTokoErr');
+    if (!nama) {
+        if (errEl) { errEl.textContent = 'Nama tidak boleh kosong'; errEl.style.display = 'block'; }
+        return;
+    }
+    const result = await tokoCreate(nama, deskrip);
+    if (!result) {
+        if (errEl) { errEl.textContent = 'Gagal membuat toko.'; errEl.style.display = 'block'; }
+        return;
+    }
+    document.getElementById('masterNamaToko').value = '';
+    document.getElementById('masterDeskrip').value  = '';
+    if (errEl) errEl.style.display = 'none';
+    await renderMasterTokoList();
+}
+
+async function masterSaveToko() {
+    // Simpan semua perubahan nama
+    for (const [id, namaBaru] of Object.entries(_masterTokoEdits)) {
+        if (namaBaru && namaBaru.trim()) {
+            await supaFetch(`toko?id=eq.${id}`, {
+                method: 'PATCH',
+                body: JSON.stringify({ nama: namaBaru.trim().toUpperCase() })
+            });
+            // Update badge di sidebar jika toko ini aktif
+            if (id === getAktifTokoId()) {
+                setAktifToko(id, namaBaru.trim().toUpperCase());
+                updateTokoUI();
+            }
+        }
+    }
+    _masterTokoEdits = {};
+    toggleMasterKelolaToko(); // tutup mode kelola
+    await renderMasterTokoList();
+
+    // Toast
+    const t = document.createElement('div');
+    t.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#166534;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.2)';
+    t.textContent = '✅ Perubahan disimpan';
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 2500);
+}
+
+// Render saat tab masterdata dibuka
+const _origSwitchTab = typeof switchTab === 'function' ? switchTab : null;
+document.addEventListener('DOMContentLoaded', () => {
+    // Render toko list saat tab masterdata pertama kali aktif
+    const masterBtn = document.querySelector('[onclick*="masterdata"]');
+    if (masterBtn) {
+        masterBtn.addEventListener('click', () => {
+            setTimeout(renderMasterTokoList, 100);
+        });
+    }
+    // Juga render saat init jika tab masterdata sudah aktif
+    if (document.getElementById('tab-masterdata')?.classList.contains('active')) {
+        renderMasterTokoList();
+    }
+});

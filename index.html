@@ -25,9 +25,8 @@
 
     <!-- ══════════════════════════════════════════ -->
     <!-- TOKO SWITCHER — Lazada vibes               -->
-    <!-- ══════════════════════════════════════════ -->
     <div class="toko-switcher" id="tokoSwitcher">
-      <div class="toko-switcher-inner" id="tokoSwitcherBtn" onclick="toggleTokoDropdown()" title="Klik untuk ganti toko">
+      <div class="toko-switcher-inner" id="tokoSwitcherBtn" onclick="toggleTokoDropdown()">
         <div class="toko-switcher-icon">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
@@ -44,19 +43,11 @@
           </svg>
         </div>
       </div>
-      <!-- Klik untuk ganti label -->
-      <div class="toko-switcher-hint">
-        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
-        Klik untuk ganti toko
-      </div>
 
-      <!-- DROPDOWN SHEET -->
+      <!-- DROPDOWN — clean, hanya list toko -->
       <div class="toko-dropdown" id="tokoDropdown">
         <div class="toko-dropdown-header">
-          <div>
-            <div class="toko-dropdown-title">Pilih Toko</div>
-            <div class="toko-dropdown-sub">Data tersimpan terpisah per toko</div>
-          </div>
+          <div class="toko-dropdown-title">Daftar Toko</div>
           <button class="toko-dropdown-close" onclick="closeTokoDropdown()">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
@@ -64,24 +55,7 @@
         <div class="toko-dropdown-list" id="tokoDropdownList">
           <div class="toko-dropdown-loading">Memuat daftar toko...</div>
         </div>
-        <div class="toko-dropdown-footer">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
-            <div class="toko-dropdown-add" onclick="showAddTokoInline()" style="flex:1">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              Tambah toko baru
-            </div>
-            <div class="toko-dropdown-kelola" onclick="toggleKelolaToko()">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-              Kelola
-            </div>
-          </div>
-          <div class="toko-dropdown-addinput" id="tokoAddInput" style="display:none">
-            <input type="text" id="inlineNamaToko" placeholder="Nama toko" maxlength="30" oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter')tambahTokoInline()">
-            <input type="text" id="inlineDeskrip" placeholder="Deskripsi" onkeydown="if(event.key==='Enter')tambahTokoInline()">
-            <button onclick="tambahTokoInline()">Buat</button>
-          </div>
-          <div id="tokoAddErr" style="display:none;font-size:10px;color:#f87171;padding:0 2px;margin-top:4px"></div>
-        </div>
+        <!-- Tidak ada footer — kelola toko ada di Master Data Toko -->
       </div>
     </div>
 
@@ -1102,102 +1076,145 @@
                 <div class="tab-page-title"><div class="tab-page-title-icon">🏪</div> Master Data Toko</div>
                 <div class="tab-page-subtitle">Data dasar toko — ROAS aktual, operasional, dan HPP produk</div>
             </div>
-            <div style="display:flex;gap:8px;">
-                <button onclick="resetOperasional()" style="background:#fff1f0;border:1px solid #ffccc7;color:#d93025;padding:7px 16px;border-radius:8px;font-size:0.8em;font-weight:700;cursor:pointer;" title="Reset ROAS, OPR, Target Margin">🔄 Reset</button>
-            </div>
+            <button onclick="resetOperasional()" style="background:#fff1f0;border:1px solid #ffccc7;color:#d93025;padding:7px 16px;border-radius:8px;font-size:0.8em;font-weight:700;cursor:pointer;">🔄 Reset</button>
         </div>
 
-        <!-- SECTION 1: DATA OPERASIONAL -->
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:20px;">
-            <div style="background:#f8f9ff;border:1.5px solid #e0e7ff;border-radius:12px;padding:16px;">
-                <div style="font-size:0.68em;font-weight:800;color:#3730a3;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px;">📊 ROAS & Iklan</div>
-                <div class="md-field">
-                    <label>ROAS Aktual Toko</label>
-                    <input type="number" id="md_roas" step="0.1" placeholder="cth: 6.2" oninput="syncMasterToMain()">
-                </div>
-                <div class="md-field">
-                    <label>ACOS (%)</label>
-                    <input type="text" id="md_acos" placeholder="otomatis" readonly style="background:#f0f0f0;color:#888;cursor:not-allowed;">
-                </div>
-            </div>
-            <div style="background:#fffbf0;border:1.5px solid #fde68a;border-radius:12px;padding:16px;">
-                <div style="font-size:0.68em;font-weight:800;color:#92400e;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px;">🏭 Operasional</div>
-                <div class="md-field">
-                    <label>Total OPR / Bulan (Rp)</label>
-                    <input type="text" id="md_opr_total" placeholder="cth: 4.000.000" oninput="formatInputRibuan(this);syncMasterToMain()">
-                </div>
-                <div class="md-field">
-                    <label>Target OPR (%)</label>
-                    <input type="number" id="md_opr_pct" step="0.5" placeholder="cth: 10" oninput="syncMasterToMain()">
-                </div>
-            </div>
-            <div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:12px;padding:16px;">
-                <div style="font-size:0.68em;font-weight:800;color:#166534;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px;">🎯 Target Margin</div>
-                <div class="md-field">
-                    <label>Target NPM (%)</label>
-                    <input type="number" id="md_npm" step="0.5" placeholder="cth: 10" oninput="syncMasterToMain()">
-                </div>
-                <div class="md-field">
-                    <label>Max Order / Bulan</label>
-                    <input type="text" id="md_max_order" placeholder="cth: 500" oninput="formatInputRibuan(this);syncMasterToMain()">
-                </div>
-            </div>
-        </div>
+        <!-- LAYOUT UTAMA: 75% HPP | 25% KANAN -->
+        <div style="display:grid;grid-template-columns:3fr 1fr;gap:14px;align-items:start;">
 
-        <!-- SECTION 2: HPP MASTER -->
-        <div style="background:#fff;border:1.5px solid #ebebeb;border-radius:12px;overflow:hidden;">
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #f0f0f0;background:#fafafa;">
-                <div>
-                    <div style="font-weight:800;font-size:0.9em;color:#1a1a2e;">📦 Master HPP Produk</div>
-                    <div style="font-size:0.72em;color:#999;margin-top:2px;">Primary key: Nomor Referensi SKU — auto-lookup saat paste pesanan</div>
+            <!-- KIRI 75%: HPP MASTER -->
+            <div style="background:#fff;border:1.5px solid #ebebeb;border-radius:12px;overflow:hidden;">
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #f0f0f0;background:#fafafa;">
+                    <div>
+                        <div style="font-weight:800;font-size:0.9em;color:#1a1a2e;">📦 Master HPP Produk</div>
+                        <div style="font-size:0.72em;color:#999;margin-top:2px;">Primary key: Nomor Referensi SKU — auto-lookup saat paste pesanan</div>
+                    </div>
+                    <div style="display:flex;gap:8px;align-items:center;">
+                        <span id="hppCount" style="font-size:0.75em;background:#f0f0f0;color:#555;padding:3px 10px;border-radius:20px;font-weight:700;">0 SKU</span>
+                        <button id="btnToggleEdit" onclick="toggleEditMode()" style="display:none;background:#fff;border:1.5px solid #3730a3;color:#3730a3;padding:7px 14px;border-radius:8px;font-size:0.8em;font-weight:700;cursor:pointer;">✏️ Edit</button>
+                        <button id="btnResetHpp" onclick="resetHppSaja()" style="display:none;background:#fff1f0;border:1px solid #ffccc7;color:#d93025;padding:7px 14px;border-radius:8px;font-size:0.8em;font-weight:700;cursor:pointer;">🗑️ Reset HPP</button>
+                        <button onclick="toggleHppPaste()" style="background:#ee4d2d;color:#fff;border:none;padding:7px 14px;border-radius:8px;font-size:0.8em;font-weight:700;cursor:pointer;">+ Paste HPP</button>
+                    </div>
                 </div>
-                <div style="display:flex;gap:8px;align-items:center;">
-                    <span id="hppCount" style="font-size:0.75em;background:#f0f0f0;color:#555;padding:3px 10px;border-radius:20px;font-weight:700;">0 SKU</span>
-                    <button id="btnToggleEdit" onclick="toggleEditMode()" style="display:none;background:#fff;border:1.5px solid #3730a3;color:#3730a3;padding:7px 14px;border-radius:8px;font-size:0.8em;font-weight:700;cursor:pointer;">✏️ Edit</button>
-                    <button id="btnResetHpp" onclick="resetHppSaja()" style="display:none;background:#fff1f0;border:1px solid #ffccc7;color:#d93025;padding:7px 14px;border-radius:8px;font-size:0.8em;font-weight:700;cursor:pointer;">🗑️ Reset HPP</button>
-                    <button onclick="toggleHppPaste()" style="background:#ee4d2d;color:#fff;border:none;padding:7px 14px;border-radius:8px;font-size:0.8em;font-weight:700;cursor:pointer;">+ Paste HPP</button>
+                <div id="hppPasteArea" style="display:none;padding:14px 18px;border-bottom:1px solid #f0f0f0;background:#fffbf7;">
+                    <div style="font-size:0.75em;color:#888;margin-bottom:8px;">
+                        <b style="color:#ea580c">Format:</b> SKU Induk &nbsp;|&nbsp; Nomor Referensi SKU &nbsp;|&nbsp; HPP &nbsp;|&nbsp; Supplier<br>
+                        <span style="color:#16a34a;font-weight:600">✅ Data tersimpan ke Template HPP Global — berlaku untuk semua toko</span>
+                    </div>
+                    <textarea id="hppPasteInput" style="width:100%;min-height:100px;border:1.5px dashed #ea580c;border-radius:8px;padding:10px;font-size:0.82em;font-family:monospace;background:#fff;outline:none;resize:vertical;" placeholder="Contoh:&#10;TURTLENECK&#9;TURTLENECK_HITAM-M&#9;41000&#9;ALAN&#10;MAYRA&#9;MAYRA_HITAM&#9;57000&#9;H SOLAH"></textarea>
+                    <div style="display:flex;gap:8px;margin-top:10px;">
+                        <button onclick="prosesHppPaste()" style="background:#ee4d2d;color:#fff;border:none;padding:8px 20px;border-radius:8px;font-size:0.82em;font-weight:700;cursor:pointer;">Proses Data</button>
+                        <button onclick="toggleHppPaste()" style="background:#f5f5f5;color:#555;border:1px solid #ddd;padding:8px 16px;border-radius:8px;font-size:0.82em;cursor:pointer;">Batal</button>
+                    </div>
+                </div>
+                <div id="hppSearchWrap" style="display:none;padding:10px 18px;border-bottom:1px solid #f5f5f5;">
+                    <input type="text" id="hppSearch" placeholder="🔍  Cari SKU atau nama produk..." oninput="filterHppTable()" style="width:100%;border:1px solid #e5e5e5;border-radius:8px;padding:8px 12px;font-size:0.85em;outline:none;background:#fafafa;">
+                </div>
+                <div id="hppTableWrap" style="display:none;overflow-x:auto;overflow-y:auto;max-height:500px;">
+                    <table id="hppTable" style="width:100%;border-collapse:collapse;font-size:0.83em;">
+                        <thead style="position:sticky;top:0;z-index:2;">
+                            <tr style="background:#f8f9fa;border-bottom:2px solid #e8eaed;">
+                                <th style="padding:10px 14px;text-align:left;font-weight:700;color:#5f6368;font-size:0.85em;width:40px;">#</th>
+                                <th style="padding:10px 14px;text-align:left;font-weight:700;color:#5f6368;font-size:0.85em;white-space:nowrap;">SKU Induk</th>
+                                <th style="padding:10px 14px;text-align:left;font-weight:700;color:#5f6368;font-size:0.85em;">Nama Produk</th>
+                                <th style="padding:10px 14px;text-align:left;font-weight:700;color:#5f6368;font-size:0.85em;white-space:nowrap;">Nomor Referensi SKU</th>
+                                <th style="padding:10px 14px;text-align:left;font-weight:700;color:#5f6368;font-size:0.85em;">Nama Variasi</th>
+                                <th style="padding:10px 14px;text-align:right;font-weight:700;color:#5f6368;font-size:0.85em;white-space:nowrap;">HPP (Rp)</th>
+                                <th id="thAksi" style="display:none;padding:10px 14px;text-align:center;font-weight:700;color:#5f6368;font-size:0.85em;width:60px;">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="hppTableBody"></tbody>
+                    </table>
+                </div>
+                <div id="hppTableFooter" style="display:none;padding:6px 18px;border-top:1px solid #f0f0f0;font-size:0.68em;color:#bbb;text-align:right;background:#fafafa;border-radius:0 0 10px 10px;"></div>
+                <div id="hppEmptyState" style="padding:40px;text-align:center;color:#bbb;">
+                    <div style="font-size:2em;margin-bottom:10px;">📦</div>
+                    <div style="font-weight:700;color:#999;font-size:0.9em;margin-bottom:6px;">Belum ada data HPP</div>
+                    <div style="font-size:0.78em;color:#bbb;">Klik "+ Paste HPP" untuk mulai menambahkan data</div>
                 </div>
             </div>
-            <div id="hppPasteArea" style="display:none;padding:14px 18px;border-bottom:1px solid #f0f0f0;background:#fffbf7;">
-                <div style="font-size:0.75em;color:#888;margin-bottom:8px;">
-                  <b style="color:#ea580c">Format baru (disarankan):</b> SKU Induk | Nomor Referensi SKU | HPP | Supplier — paste dari Google Sheet/Excel<br>
-                  <span style="color:#bbb">Format lama juga didukung: SKU Induk | Nama Produk | Ref SKU | Variasi | HPP</span><br>
-                  <span style="color:#16a34a;font-weight:600">✅ Data otomatis tersimpan ke Template HPP Global — berlaku untuk semua toko</span>
+
+            <!-- KANAN 25%: 4 blok vertikal -->
+            <div style="display:flex;flex-direction:column;gap:12px;">
+
+                <!-- BLOK 1: DAFTAR TOKO -->
+                <div style="background:#fff;border:1.5px solid #ebebeb;border-radius:12px;padding:14px;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                        <div style="font-size:0.75em;font-weight:800;color:#555;text-transform:uppercase;letter-spacing:0.8px;">Daftar Toko</div>
+                        <button id="btnTokoGerigi" onclick="toggleMasterKelolaToko()" title="Kelola toko" style="background:transparent;border:1px solid #e0e0e0;border-radius:6px;padding:4px 6px;cursor:pointer;display:flex;align-items:center;color:#888;transition:all 0.15s;">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                        </button>
+                    </div>
+
+                    <!-- Input tambah toko baru (muncul saat gerigi aktif) -->
+                    <div id="masterAddTokoRow" style="display:none;margin-bottom:8px;">
+                        <input type="text" id="masterNamaToko" placeholder="Nama toko baru..." maxlength="30"
+                            oninput="this.value=this.value.toUpperCase()"
+                            onkeydown="if(event.key==='Enter')masterTambahToko()"
+                            style="width:100%;padding:7px 10px;font-size:0.8em;border:1.5px solid #ee4d2d;border-radius:8px;margin-bottom:6px;outline:none;box-sizing:border-box;">
+                        <input type="text" id="masterDeskrip" placeholder="Deskripsi (opsional)"
+                            onkeydown="if(event.key==='Enter')masterTambahToko()"
+                            style="width:100%;padding:7px 10px;font-size:0.8em;border:1px solid #e0e0e0;border-radius:8px;margin-bottom:6px;outline:none;box-sizing:border-box;">
+                        <div style="display:flex;gap:6px;">
+                            <button onclick="masterTambahToko()" style="flex:1;background:#ee4d2d;color:#fff;border:none;padding:7px;border-radius:8px;font-size:0.8em;font-weight:700;cursor:pointer;">Tambah</button>
+                            <button onclick="toggleMasterKelolaToko()" style="background:#f5f5f5;color:#888;border:1px solid #e0e0e0;padding:7px 10px;border-radius:8px;font-size:0.8em;cursor:pointer;">Batal</button>
+                        </div>
+                        <div id="masterTokoErr" style="display:none;font-size:0.75em;color:#ef4444;margin-top:4px;"></div>
+                    </div>
+
+                    <!-- List toko -->
+                    <div id="masterTokoList" style="display:flex;flex-direction:column;gap:4px;">
+                        <div style="font-size:0.78em;color:#bbb;text-align:center;padding:8px;">Memuat...</div>
+                    </div>
+
+                    <!-- Tombol Save (muncul saat mode kelola) -->
+                    <div id="masterSaveWrap" style="display:none;margin-top:8px;border-top:1px solid #f0f0f0;padding-top:8px;">
+                        <button onclick="masterSaveToko()" style="width:100%;background:#1a1a2e;color:#fff;border:none;padding:8px;border-radius:8px;font-size:0.8em;font-weight:700;cursor:pointer;">💾 Simpan</button>
+                    </div>
                 </div>
-                <textarea id="hppPasteInput" style="width:100%;min-height:100px;border:1.5px dashed #ea580c;border-radius:8px;padding:10px;font-size:0.82em;font-family:monospace;background:#fff;outline:none;resize:vertical;" placeholder="Contoh:&#10;TURTLENECK	TURTLENECK_HITAM-M	41000	ALAN&#10;TURTLENECK	TURTLENECK_HITAM-XL	41000	ALAN&#10;LAVERA	LVR_COFFEE	76000	BUDI"></textarea>
-                <div style="display:flex;gap:8px;margin-top:10px;">
-                    <button onclick="prosesHppPaste()" style="background:#ee4d2d;color:#fff;border:none;padding:8px 20px;border-radius:8px;font-size:0.82em;font-weight:700;cursor:pointer;">Proses Data</button>
-                    <button onclick="toggleHppPaste()" style="background:#f5f5f5;color:#555;border:1px solid #ddd;padding:8px 16px;border-radius:8px;font-size:0.82em;cursor:pointer;">Batal</button>
+
+                <!-- BLOK 2: ROAS & IKLAN -->
+                <div style="background:#f8f9ff;border:1.5px solid #e0e7ff;border-radius:12px;padding:14px;">
+                    <div style="font-size:0.68em;font-weight:800;color:#3730a3;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px;">📊 ROAS & Iklan</div>
+                    <div class="md-field">
+                        <label>ROAS Aktual Toko</label>
+                        <input type="number" id="md_roas" step="0.1" placeholder="cth: 6.2" oninput="syncMasterToMain()">
+                    </div>
+                    <div class="md-field">
+                        <label>ACOS (%)</label>
+                        <input type="text" id="md_acos" placeholder="otomatis" readonly style="background:#f0f0f0;color:#888;cursor:not-allowed;">
+                    </div>
                 </div>
-            </div>
-            <div id="hppSearchWrap" style="display:none;padding:10px 18px;border-bottom:1px solid #f5f5f5;">
-                <input type="text" id="hppSearch" placeholder="🔍  Cari SKU atau nama produk..." oninput="filterHppTable()" style="width:100%;border:1px solid #e5e5e5;border-radius:8px;padding:8px 12px;font-size:0.85em;outline:none;background:#fafafa;">
-            </div>
-            <div id="hppTableWrap" style="display:none;overflow-x:auto;overflow-y:auto;max-height:420px;">
-                <table id="hppTable" style="width:100%;border-collapse:collapse;font-size:0.83em;">
-                    <thead style="position:sticky;top:0;z-index:2;">
-                        <tr style="background:#f8f9fa;border-bottom:2px solid #e8eaed;">
-                            <th style="padding:10px 14px;text-align:left;font-weight:700;color:#5f6368;font-size:0.85em;width:40px;">#</th>
-                            <th style="padding:10px 14px;text-align:left;font-weight:700;color:#5f6368;font-size:0.85em;white-space:nowrap;">SKU Induk</th>
-                            <th style="padding:10px 14px;text-align:left;font-weight:700;color:#5f6368;font-size:0.85em;">Nama Produk</th>
-                            <th style="padding:10px 14px;text-align:left;font-weight:700;color:#5f6368;font-size:0.85em;white-space:nowrap;">Nomor Referensi SKU</th>
-                            <th style="padding:10px 14px;text-align:left;font-weight:700;color:#5f6368;font-size:0.85em;">Nama Variasi</th>
-                            <th style="padding:10px 14px;text-align:right;font-weight:700;color:#5f6368;font-size:0.85em;white-space:nowrap;">HPP (Rp)</th>
-                            <th id="thAksi" style="display:none;padding:10px 14px;text-align:center;font-weight:700;color:#5f6368;font-size:0.85em;width:60px;">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody id="hppTableBody"></tbody>
-                </table>
-            </div>
-            <div id="hppTableFooter" style="display:none;padding:6px 18px;border-top:1px solid #f0f0f0;font-size:0.68em;color:#bbb;text-align:right;background:#fafafa;border-radius:0 0 10px 10px;"></div>
-            <div id="hppEmptyState" style="padding:40px;text-align:center;color:#bbb;">
-                <div style="font-size:2em;margin-bottom:10px;">📦</div>
-                <div style="font-weight:700;color:#999;font-size:0.9em;margin-bottom:6px;">Belum ada data HPP</div>
-                <div style="font-size:0.78em;color:#bbb;">Klik "+ Paste HPP" untuk mulai menambahkan data</div>
-            </div>
-        </div>
+
+                <!-- BLOK 3: OPERASIONAL -->
+                <div style="background:#fffbf0;border:1.5px solid #fde68a;border-radius:12px;padding:14px;">
+                    <div style="font-size:0.68em;font-weight:800;color:#92400e;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px;">🏭 Operasional</div>
+                    <div class="md-field">
+                        <label>Total OPR / Bulan (Rp)</label>
+                        <input type="text" id="md_opr_total" placeholder="cth: 4.000.000" oninput="formatInputRibuan(this);syncMasterToMain()">
+                    </div>
+                    <div class="md-field">
+                        <label>Target OPR (%)</label>
+                        <input type="number" id="md_opr_pct" step="0.5" placeholder="cth: 10" oninput="syncMasterToMain()">
+                    </div>
+                </div>
+
+                <!-- BLOK 4: TARGET MARGIN -->
+                <div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:12px;padding:14px;">
+                    <div style="font-size:0.68em;font-weight:800;color:#166534;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px;">🎯 Target Margin</div>
+                    <div class="md-field">
+                        <label>Target NPM (%)</label>
+                        <input type="number" id="md_npm" step="0.5" placeholder="cth: 10" oninput="syncMasterToMain()">
+                    </div>
+                    <div class="md-field">
+                        <label>Max Order / Bulan</label>
+                        <input type="text" id="md_max_order" placeholder="cth: 500" oninput="formatInputRibuan(this);syncMasterToMain()">
+                    </div>
+                </div>
+
+            </div><!-- end kanan -->
+        </div><!-- end grid -->
     </div>
-</div>
 
 
 

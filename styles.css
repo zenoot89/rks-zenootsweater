@@ -691,3 +691,48 @@
 .kelola-mode .toko-item-hapus { display: flex; }
 .kelola-mode .toko-item-arrow,
 .kelola-mode .toko-item-badge { display: none; }
+
+/* ── Master Data Toko — Daftar Toko ── */
+.md-toko-item {
+    display: flex; align-items: center; gap: 7px;
+    padding: 7px 8px; border-radius: 7px;
+    border: 0.5px solid #f0f0f0;
+    transition: background 0.1s;
+}
+.md-toko-item.active {
+    background: rgba(238,77,45,0.07);
+    border-color: rgba(238,77,45,0.25);
+}
+.md-toko-item:hover { background: #fafafa; }
+.md-toko-item.active:hover { background: rgba(238,77,45,0.1); }
+
+.md-toko-icon {
+    width: 22px; height: 22px; border-radius: 5px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+}
+.md-toko-item.active .md-toko-icon { background: #ee4d2d; }
+.md-toko-item:not(.active) .md-toko-icon { background: #f0f0f0; }
+
+.md-toko-nama {
+    flex: 1; font-size: 12px; font-weight: 600; color: #1a1a2e;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.md-toko-item:not(.active) .md-toko-nama { color: #555; }
+
+.md-toko-input {
+    flex: 1; font-size: 12px; font-weight: 600;
+    border: 1.5px solid #ee4d2d; border-radius: 5px;
+    padding: 2px 6px; outline: none; color: #1a1a2e;
+    text-transform: uppercase;
+}
+
+.md-toko-aksi { display: flex; gap: 3px; flex-shrink: 0; }
+.md-toko-btn-edit, .md-toko-btn-del {
+    width: 22px; height: 22px; border-radius: 5px;
+    border: 0.5px solid #e0e0e0; background: transparent;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    color: #888; transition: all 0.12s;
+}
+.md-toko-btn-edit:hover { border-color: #3730a3; color: #3730a3; background: #f0f0ff; }
+.md-toko-btn-del:hover  { border-color: #ef4444; background: #fff0f0; }

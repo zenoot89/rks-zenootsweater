@@ -192,20 +192,31 @@ async function profileSave(payload) {
 // ════════════════════════════════════════════════════════
 
 async function syncHppFromSupabase() {
-    const rows = await hppGetAll();
-    if (!rows || rows.length === 0) return;
+    // OPSI B: template_hpp global sebagai satu-satunya sumber HPP
+    // Semua toko baca dari tabel yang sama — paste sekali berlaku untuk semua
     if (typeof hppMaster === 'undefined') return;
+
+    const rows = await templateHppGetAll();
+    if (!rows || rows.length === 0) {
+        console.log('Template HPP kosong — belum ada data');
+        return;
+    }
     hppMaster.length = 0;
     rows.forEach(row => {
         hppMaster.push({
-            refSku:     row.sku,
-            namaProduk: row.nama_produk,
-            variasi:    row.variasi || '',
-            hpp:        row.hpp
+            skuInduk:   row.sku_induk   || '',
+            refSku:     row.ref_sku,
+            namaProduk: row.nama_produk || '',
+            namaVariasi:row.nama_variasi|| '',
+            hpp:        row.hpp,
+            supplier:   row.supplier    || ''
         });
     });
+    // Update cache lokal juga
+    window._templateHppCache = rows;
+    localStorage.setItem('masterDataToko', JSON.stringify(hppMaster));
     if (typeof renderHppTable === 'function') renderHppTable();
-    console.log(`✅ ${rows.length} HPP synced (${getAktifTokoNama()})`);
+    console.log(`✅ ${rows.length} HPP loaded dari template_hpp global`);
 }
 
 // ════════════════════════════════════════════════════════

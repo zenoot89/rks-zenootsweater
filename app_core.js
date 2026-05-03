@@ -853,15 +853,23 @@ function hapusRiwayat(){localStorage.removeItem('riwayat');renderHistory();}
 // ═══════════════════════════════════════════════════════
 let hppMaster = [];
 
-function muatMasterData() {
-    const saved = localStorage.getItem('masterDataToko');
-    if (saved) { hppMaster = JSON.parse(saved); renderHppTable(); }
+async function muatMasterData() {
+    // ── OPSI B: Load HPP dari template_hpp global ────────────
+    // Coba dari Supabase dulu (realtime, akurat)
+    if (typeof syncHppFromSupabase === 'function') {
+        await syncHppFromSupabase();
+    } else {
+        // Fallback: localStorage (offline/cache)
+        const saved = localStorage.getItem('masterDataToko');
+        if (saved) { hppMaster = JSON.parse(saved); renderHppTable(); }
+    }
+    // Load setting operasional per toko
     const ops = JSON.parse(localStorage.getItem('masterOps') || '{}');
-    if (ops.roas) document.getElementById('md_roas').value = ops.roas;
-    if (ops.opr_total) document.getElementById('md_opr_total').value = ops.opr_total;
-    if (ops.opr_pct) document.getElementById('md_opr_pct').value = ops.opr_pct;
-    if (ops.npm) document.getElementById('md_npm').value = ops.npm;
-    if (ops.max_order) document.getElementById('md_max_order').value = ops.max_order;
+    if (ops.roas)      { const el = document.getElementById('md_roas');      if(el) el.value = ops.roas; }
+    if (ops.opr_total) { const el = document.getElementById('md_opr_total'); if(el) el.value = ops.opr_total; }
+    if (ops.opr_pct)   { const el = document.getElementById('md_opr_pct');   if(el) el.value = ops.opr_pct; }
+    if (ops.npm)       { const el = document.getElementById('md_npm');        if(el) el.value = ops.npm; }
+    if (ops.max_order) { const el = document.getElementById('md_max_order'); if(el) el.value = ops.max_order; }
     if (ops.roas) updateAcosDisplay();
 }
 
@@ -899,7 +907,7 @@ function toggleHppPaste() {
     if (area.style.display === 'block') document.getElementById('hppPasteInput').focus();
 }
 
-function prosesHppPaste() {
+async function prosesHppPaste() {
     const raw = document.getElementById('hppPasteInput').value.trim();
     if (!raw) return;
     const lines = raw.split('\n').filter(l => l.trim());
@@ -955,28 +963,25 @@ function prosesHppPaste() {
     });
     localStorage.setItem('masterDataToko', JSON.stringify(hppMaster));
 
-    // ── SYNC ke Supabase ─────────────────────────────────────
-    // 1. Sync ke master_hpp toko aktif
-    if (typeof hppUpsert === 'function') {
-        newData.forEach(n => hppUpsert(n.refSku, n.namaProduk||n.refSku, n.hpp, n.namaVariasi));
-    }
-    // 2. Sync ke template_hpp GLOBAL (tanpa toko_id)
+    // ── OPSI B: Simpan HANYA ke template_hpp global ──────────
+    // Tidak perlu master_hpp per toko — template berlaku untuk semua toko
     if (typeof templateHppUpsert === 'function') {
         const templateRows = newData.map(n => ({
-            sku_induk:    n.skuInduk,
+            sku_induk:    n.skuInduk    || '',
             ref_sku:      n.refSku,
-            nama_produk:  n.namaProduk || '',
+            nama_produk:  n.namaProduk  || '',
             nama_variasi: n.namaVariasi || '',
             hpp:          n.hpp,
-            supplier:     n.supplier || ''
+            supplier:     n.supplier    || ''
         }));
-        templateHppUpsert(templateRows).then(res => {
-            if (res) {
-                console.log(`✅ ${templateRows.length} SKU synced ke template_hpp global`);
-                // Refresh cache lokal
-                if (typeof loadTemplateHppCache === 'function') loadTemplateHppCache();
-            }
-        });
+        try {
+            await templateHppUpsert(templateRows);
+            // Refresh cache
+            if (typeof loadTemplateHppCache === 'function') await loadTemplateHppCache();
+            console.log(`✅ ${templateRows.length} SKU saved to template_hpp global`);
+        } catch(e) {
+            console.warn('template_hpp upsert error:', e);
+        }
     }
 
     // Tutup form
@@ -1039,11 +1044,17 @@ function resetOperasional() {
     document.getElementById('md_acos').value = '—';
 }
 
-function resetHppSaja() {
-    if (!confirm('Hapus semua data HPP produk? Data ROAS & Operasional tidak terpengaruh.')) return;
+async function resetHppSaja() {
+    if (!confirm('Hapus semua data HPP dari Template Global?\n\nIni akan menghapus HPP untuk SEMUA toko.\nData ROAS & Operasional tidak terpengaruh.')) return;
     hppMaster = [];
     localStorage.removeItem('masterDataToko');
+    window._templateHppCache = [];
     hppEditMode = false;
+    // Hapus dari Supabase template global
+    if (typeof templateHppReset === 'function') {
+        await templateHppReset();
+        console.log('✅ template_hpp global direset');
+    }
     renderHppTable();
 }
 
@@ -1076,7 +1087,7 @@ function filterHppTable() {
     renderHppRows(filtered);
 }
 
-function editHppRow(idx) {
+async function editHppRow(idx) {
     const h = hppMaster[idx];
     const newHpp = prompt(`Edit HPP untuk ${h.refSku} (${h.namaVariasi})\nHPP saat ini: Rp ${h.hpp.toLocaleString('id-ID')}\n\nMasukkan HPP baru:`, h.hpp);
     if (newHpp === null) return;
@@ -1084,6 +1095,14 @@ function editHppRow(idx) {
     if (isNaN(val) || val <= 0) { alert('Nilai tidak valid'); return; }
     hppMaster[idx].hpp = val;
     localStorage.setItem('masterDataToko', JSON.stringify(hppMaster));
+    // Simpan ke template_hpp global
+    if (typeof templateHppUpsert === 'function') {
+        await templateHppUpsert([{
+            sku_induk: h.skuInduk||'', ref_sku: h.refSku,
+            nama_produk: h.namaProduk||'', nama_variasi: h.namaVariasi||'',
+            hpp: val, supplier: h.supplier||''
+        }]);
+    }
     renderHppTable();
 }
 

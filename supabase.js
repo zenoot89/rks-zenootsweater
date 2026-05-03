@@ -496,3 +496,97 @@ async function hapusToko(id, nama, e) {
     // Refresh list
     await renderTokoList();
 }
+
+// ════════════════════════════════════════════════════════
+//  TEMPLATE HPP GLOBAL — CRUD
+//  Tidak ada toko_id — berlaku untuk semua toko
+//  Primary key bisnis: ref_sku (Nomor Referensi SKU)
+// ════════════════════════════════════════════════════════
+
+// Ambil semua template
+async function templateHppGetAll() {
+    return (await supaFetch(
+        'template_hpp?select=*&order=sku_induk.asc,ref_sku.asc'
+    )) || [];
+}
+
+// Upsert satu baris (insert or update by ref_sku)
+async function templateHppUpsert(rows) {
+    if (!rows || rows.length === 0) return null;
+    return await supaFetch('template_hpp?on_conflict=ref_sku', {
+        method: 'POST',
+        headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+        body: JSON.stringify(rows)
+    });
+}
+
+// Hapus by ref_sku
+async function templateHppDelete(ref_sku) {
+    return await supaFetch(
+        `template_hpp?ref_sku=eq.${encodeURIComponent(ref_sku)}`,
+        { method: 'DELETE' }
+    );
+}
+
+// Hapus semua (reset)
+async function templateHppReset() {
+    return await supaFetch('template_hpp?id=neq.00000000-0000-0000-0000-000000000000',
+        { method: 'DELETE' }
+    );
+}
+
+// Lookup HPP by ref_sku — dipakai saat proses order
+// Urutan: cek master_hpp toko dulu, fallback ke template_hpp global
+async function lookupHpp(ref_sku) {
+    // 1. Cek master_hpp toko aktif
+    const tid = getAktifTokoId();
+    if (tid) {
+        const local = await supaFetch(
+            `master_hpp?toko_id=eq.${tid}&sku=eq.${encodeURIComponent(ref_sku)}&select=hpp&limit=1`
+        );
+        if (local && local[0] && local[0].hpp > 0) return local[0].hpp;
+    }
+    // 2. Fallback ke template global
+    const tmpl = await supaFetch(
+        `template_hpp?ref_sku=eq.${encodeURIComponent(ref_sku)}&select=hpp&limit=1`
+    );
+    if (tmpl && tmpl[0] && tmpl[0].hpp > 0) return tmpl[0].hpp;
+    return 0;
+}
+
+// Parse paste data format File 3:
+// SKU Induk | SKU Variasi (ref_sku) | HPP | Supplier
+// Tab-separated (copy dari Google Sheet / Excel)
+function parseTemplatePaste(text) {
+    const lines = text.trim().split('\n');
+    const rows  = [];
+    const errors = [];
+
+    lines.forEach((line, i) => {
+        const cols = line.split('\t').map(c => c.trim());
+        if (cols.length < 3) {
+            // Coba split by comma
+            const colsComma = line.split(',').map(c => c.trim());
+            if (colsComma.length >= 3) cols.splice(0, cols.length, ...colsComma);
+            else { errors.push(`Baris ${i+1}: kurang kolom — "${line}"`); return; }
+        }
+
+        const sku_induk    = cols[0]?.toUpperCase() || '';
+        const ref_sku      = cols[1]?.toUpperCase() || '';
+        const hpp_raw      = cols[2]?.replace(/[^0-9]/g,'') || '0';
+        const supplier     = cols[3]?.toUpperCase() || '';
+        const hpp          = parseInt(hpp_raw) || 0;
+
+        if (!ref_sku) { errors.push(`Baris ${i+1}: ref_sku kosong`); return; }
+        if (hpp <= 0) { errors.push(`Baris ${i+1}: HPP tidak valid — "${cols[2]}"`); return; }
+
+        // Nama variasi = bagian setelah _ dari ref_sku (opsional)
+        const nama_variasi = ref_sku.includes('_')
+            ? ref_sku.split('_').slice(1).join('_')
+            : '';
+
+        rows.push({ sku_induk, ref_sku, hpp, supplier, nama_variasi });
+    });
+
+    return { rows, errors };
+}

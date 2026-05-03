@@ -904,22 +904,96 @@ function prosesHppPaste() {
     if (!raw) return;
     const lines = raw.split('\n').filter(l => l.trim());
     const newData = [];
+    const errors  = [];
+
     for (const line of lines) {
-        const cols = line.split('\t');
-        if (cols.length < 5) continue;
-        const hpp = parseFloat(String(cols[4]).replace(/[Rp\.\s]/g,'').replace(',','.')) || 0;
-        if (!cols[2] || hpp <= 0) continue;
-        newData.push({ skuInduk:(cols[0]||'').trim(), namaProduk:(cols[1]||'').trim(), refSku:(cols[2]||'').trim(), namaVariasi:(cols[3]||'').trim(), hpp });
+        // Support tab (dari Google Sheet/Excel) dan comma
+        let cols = line.split('\t');
+        if (cols.length < 3) cols = line.split(',');
+        cols = cols.map(c => c.trim());
+
+        // ── Format File 3 (baru): SKU Induk | Ref SKU | HPP | Supplier
+        // ── Format lama (5 kolom): SKU Induk | Nama Produk | Ref SKU | Variasi | HPP
+        let skuInduk, namaProduk, refSku, namaVariasi, hpp, supplier;
+
+        if (cols.length >= 5) {
+            // Format lama: 5 kolom
+            skuInduk    = (cols[0]||'').toUpperCase().trim();
+            namaProduk  = (cols[1]||'').trim();
+            refSku      = (cols[2]||'').toUpperCase().trim();
+            namaVariasi = (cols[3]||'').trim();
+            hpp         = parseFloat(String(cols[4]).replace(/[Rp\.\s]/g,'').replace(',','.')) || 0;
+            supplier    = (cols[5]||'').toUpperCase().trim();
+        } else if (cols.length >= 3) {
+            // Format baru File 3: SKU Induk | Ref SKU | HPP | Supplier
+            skuInduk    = (cols[0]||'').toUpperCase().trim();
+            refSku      = (cols[1]||'').toUpperCase().trim();
+            hpp         = parseFloat(String(cols[2]).replace(/[Rp\.\s]/g,'').replace(',','.')) || 0;
+            supplier    = (cols[3]||'').toUpperCase().trim();
+            namaProduk  = '';
+            namaVariasi = refSku.includes('_') ? refSku.split('_').slice(1).join('_') : '';
+        } else {
+            errors.push(`Baris tidak terbaca: "${line}"`);
+            continue;
+        }
+
+        if (!refSku) { errors.push(`Ref SKU kosong: "${line}"`); continue; }
+        if (hpp <= 0) { errors.push(`HPP tidak valid: "${line}"`); continue; }
+
+        newData.push({ skuInduk, namaProduk, refSku, namaVariasi, hpp, supplier });
     }
-    if (newData.length === 0) { alert('Data tidak terbaca. Pastikan copy langsung dari Google Sheet (5 kolom tab-separated).'); return; }
+
+    if (newData.length === 0) {
+        alert('Data tidak terbaca.\n\nFormat yang didukung:\n• File 3 (baru): SKU Induk | Ref SKU | HPP | Supplier\n• Format lama: SKU Induk | Nama Produk | Ref SKU | Variasi | HPP\n\nPastikan copy langsung dari Google Sheet/Excel.');
+        return;
+    }
+
+    // Update hppMaster lokal
     newData.forEach(n => {
         const idx = hppMaster.findIndex(h => h.refSku === n.refSku);
         if (idx >= 0) hppMaster[idx] = n; else hppMaster.push(n);
     });
     localStorage.setItem('masterDataToko', JSON.stringify(hppMaster));
+
+    // ── SYNC ke Supabase ─────────────────────────────────────
+    // 1. Sync ke master_hpp toko aktif
+    if (typeof hppUpsert === 'function') {
+        newData.forEach(n => hppUpsert(n.refSku, n.namaProduk||n.refSku, n.hpp, n.namaVariasi));
+    }
+    // 2. Sync ke template_hpp GLOBAL (tanpa toko_id)
+    if (typeof templateHppUpsert === 'function') {
+        const templateRows = newData.map(n => ({
+            sku_induk:    n.skuInduk,
+            ref_sku:      n.refSku,
+            nama_produk:  n.namaProduk || '',
+            nama_variasi: n.namaVariasi || '',
+            hpp:          n.hpp,
+            supplier:     n.supplier || ''
+        }));
+        templateHppUpsert(templateRows).then(res => {
+            if (res) {
+                console.log(`✅ ${templateRows.length} SKU synced ke template_hpp global`);
+                // Refresh cache lokal
+                if (typeof loadTemplateHppCache === 'function') loadTemplateHppCache();
+            }
+        });
+    }
+
+    // Tutup form
     document.getElementById('hppPasteInput').value = '';
     toggleHppPaste();
     renderHppTable();
+
+    // Feedback
+    const msg = `✅ ${newData.length} SKU berhasil diproses${errors.length > 0 ? `\n⚠️ ${errors.length} baris gagal:\n${errors.join('\n')}` : ''}`;
+    if (errors.length > 0) alert(msg);
+    else {
+        const toast = document.createElement('div');
+        toast.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#166534;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.3)';
+        toast.textContent = `✅ ${newData.length} SKU tersimpan ke Template Global`;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
 }
 
 let hppEditMode = false;
@@ -1027,9 +1101,33 @@ function resetMasterData() {
 }
 
 function lookupHppFromMaster(refSku) {
-    if (!refSku || hppMaster.length === 0) return null;
-    const found = hppMaster.find(h => h.refSku.toLowerCase() === refSku.toLowerCase().trim());
-    return found ? found.hpp : null;
+    if (!refSku) return null;
+    // 1. Cek hppMaster lokal (toko aktif)
+    if (hppMaster.length > 0) {
+        const found = hppMaster.find(h => h.refSku.toLowerCase() === refSku.toLowerCase().trim());
+        if (found && found.hpp > 0) return found.hpp;
+    }
+    // 2. Cek templateHppCache (template global — dimuat saat init)
+    if (window._templateHppCache && window._templateHppCache.length > 0) {
+        const found = window._templateHppCache.find(
+            t => t.ref_sku.toLowerCase() === refSku.toLowerCase().trim()
+        );
+        if (found && found.hpp > 0) return found.hpp;
+    }
+    return null;
+}
+
+// Load template_hpp global ke cache lokal — dipanggil saat init & setelah paste
+async function loadTemplateHppCache() {
+    if (typeof templateHppGetAll !== 'function') return;
+    try {
+        const rows = await templateHppGetAll();
+        window._templateHppCache = rows || [];
+        console.log(`✅ Template HPP cache: ${window._templateHppCache.length} SKU`);
+    } catch(e) {
+        console.warn('Template HPP cache load error:', e);
+        window._templateHppCache = [];
+    }
 }
 
 
@@ -3117,6 +3215,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (typeof initTokoSession === 'function') {
         initTokoSession().then(() => {
             if (typeof checkSupabaseConnection === 'function') checkSupabaseConnection();
+            // Load template HPP global ke cache
+            if (typeof loadTemplateHppCache === 'function') loadTemplateHppCache();
             // Update no-toko state pada switcher
             const sw = document.querySelector('.toko-switcher-inner');
             if (sw) {

@@ -1159,8 +1159,12 @@
                 </div>
             </div>
             <div id="hppPasteArea" style="display:none;padding:14px 18px;border-bottom:1px solid #f0f0f0;background:#fffbf7;">
-                <div style="font-size:0.75em;color:#888;margin-bottom:8px;">Copy dari Google Sheet (5 kolom: SKU Induk | Nama Produk | Nomor Referensi SKU | Nama Variasi | HPP PRODUK) lalu paste:</div>
-                <textarea id="hppPasteInput" style="width:100%;min-height:100px;border:1.5px dashed #ea580c;border-radius:8px;padding:10px;font-size:0.82em;font-family:monospace;background:#fff;outline:none;resize:vertical;" placeholder="Paste data dari Google Sheet di sini..."></textarea>
+                <div style="font-size:0.75em;color:#888;margin-bottom:8px;">
+                  <b style="color:#ea580c">Format baru (disarankan):</b> SKU Induk | Nomor Referensi SKU | HPP | Supplier — paste dari Google Sheet/Excel<br>
+                  <span style="color:#bbb">Format lama juga didukung: SKU Induk | Nama Produk | Ref SKU | Variasi | HPP</span><br>
+                  <span style="color:#16a34a;font-weight:600">✅ Data otomatis tersimpan ke Template HPP Global — berlaku untuk semua toko</span>
+                </div>
+                <textarea id="hppPasteInput" style="width:100%;min-height:100px;border:1.5px dashed #ea580c;border-radius:8px;padding:10px;font-size:0.82em;font-family:monospace;background:#fff;outline:none;resize:vertical;" placeholder="Contoh:&#10;TURTLENECK	TURTLENECK_HITAM-M	41000	ALAN&#10;TURTLENECK	TURTLENECK_HITAM-XL	41000	ALAN&#10;LAVERA	LVR_COFFEE	76000	BUDI"></textarea>
                 <div style="display:flex;gap:8px;margin-top:10px;">
                     <button onclick="prosesHppPaste()" style="background:#ee4d2d;color:#fff;border:none;padding:8px 20px;border-radius:8px;font-size:0.82em;font-weight:700;cursor:pointer;">Proses Data</button>
                     <button onclick="toggleHppPaste()" style="background:#f5f5f5;color:#555;border:1px solid #ddd;padding:8px 16px;border-radius:8px;font-size:0.82em;cursor:pointer;">Batal</button>

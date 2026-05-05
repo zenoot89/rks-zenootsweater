@@ -762,3 +762,24 @@
     display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
 .md-toko-dd-icon.aktif { background: #ee4d2d; }
+
+/* Dropdown overlay agar tidak dorong konten bawah */
+#mdTokoDropdown {
+    position: absolute !important;
+    left: 0 !important; right: 0 !important;
+    top: calc(100% + 4px) !important;
+    z-index: 9999 !important;
+    max-height: 240px;
+    overflow-y: auto;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+}
+/* Pastikan blok toko punya position relative */
+#mdTokoSelector {
+    position: relative;
+}
+/* Wrapper blok toko */
+.md-toko-selector-wrap {
+    position: relative;
+}
+/* mdSettingWrap tidak perlu margin extra karena dropdown absolute */
+#mdSettingWrap { margin-top: 0; }

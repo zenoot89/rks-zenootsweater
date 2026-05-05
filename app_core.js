@@ -911,9 +911,12 @@ async function loadTokoSetting(tokoId, tokoNama) {
         el.classList.toggle('editing', el.dataset.tokoid === tokoId);
     });
 
-    // Update label
+    // Update label setting header
     const lbl = document.getElementById('mdSettingLabel');
     if (lbl) lbl.textContent = `Setting: ${tokoNama}`;
+    // Update selector 1 baris
+    const selLabel = document.getElementById('mdTokoSelectorLabel');
+    if (selLabel) selLabel.textContent = tokoNama;
 
     // Tampilkan 3 blok setting
     const settingWrap = document.getElementById('mdSettingWrap');
@@ -4570,27 +4573,29 @@ async function renderMasterTokoList() {
     }
 
     wrap.innerHTML = list.map(t => `
-        <div class="md-toko-item ${t.id === aktifId ? 'active' : ''} ${_editTokoId === t.id ? 'editing' : ''}"
+        <div class="md-toko-dd-item ${_editTokoId === t.id ? 'selected' : ''}"
              id="mdtoko_${t.id}" data-tokoid="${t.id}"
-             onclick="loadTokoSetting('${t.id}','${t.nama}')">
-            <div class="md-toko-icon">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+             onclick="pickMdToko('${t.id}','${t.nama}')">
+            <div class="md-toko-dd-icon ${t.id === aktifId ? 'aktif' : ''}">
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none"
                      stroke="${t.id === aktifId ? 'white' : '#aaa'}" stroke-width="2.5">
                     <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
                 </svg>
             </div>
-            <div class="md-toko-nama" id="mdnama_${t.id}">${t.nama}</div>
-            <input class="md-toko-input" id="mdinput_${t.id}" value="${t.nama}"
-                   style="display:none;"
-                   onclick="event.stopPropagation()"
-                   oninput="_masterTokoEdits['${t.id}']=this.value.toUpperCase();this.value=this.value.toUpperCase()">
+            <div style="flex:1;font-size:12px;font-weight:600;color:${_editTokoId===t.id?'#ee4d2d':'#333'}">${t.nama}</div>
+            ${t.id === aktifId ? '<span style="font-size:9px;background:#ee4d2d;color:#fff;padding:1px 5px;border-radius:3px;font-weight:700;">AKTIF</span>' : ''}
+            ${_editTokoId === t.id ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#ee4d2d" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>' : ''}
+            <!-- Aksi edit/hapus (mode kelola) -->
             <div class="md-toko-aksi" id="mdaksi_${t.id}" style="display:none;" onclick="event.stopPropagation()">
-                <button onclick="mdEditToko('${t.id}')" title="Edit nama" class="md-toko-btn-edit">
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                <button onclick="mdEditToko('${t.id}')" class="md-toko-btn-edit" title="Edit nama">
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                 </button>
-                <button onclick="mdHapusToko('${t.id}','${t.nama}')" title="Hapus toko" class="md-toko-btn-del">
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                <button onclick="mdHapusToko('${t.id}','${t.nama}')" class="md-toko-btn-del" title="Hapus">
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
                 </button>
+                <input class="md-toko-input" id="mdinput_${t.id}" value="${t.nama}"
+                       style="display:none;font-size:11px;padding:2px 5px;border:1px solid #ee4d2d;border-radius:4px;width:80px;"
+                       oninput="_masterTokoEdits['${t.id}']=this.value.toUpperCase();this.value=this.value.toUpperCase()">
             </div>
         </div>
     `).join('');
@@ -4600,6 +4605,36 @@ async function renderMasterTokoList() {
         const aktifToko = list.find(t => t.id === aktifId);
         if (aktifToko) await loadTokoSetting(aktifToko.id, aktifToko.nama);
     }
+}
+
+// Toggle dropdown toko selector
+let _mdDropdownOpen = false;
+function toggleMdTokoDropdown() {
+    _mdDropdownOpen = !_mdDropdownOpen;
+    const dd = document.getElementById('mdTokoDropdown');
+    if (dd) dd.style.display = _mdDropdownOpen ? 'block' : 'none';
+    if (_mdDropdownOpen) {
+        setTimeout(() => document.addEventListener('click', _mdOutsideClick), 50);
+    }
+}
+function _mdOutsideClick(e) {
+    const sel = document.getElementById('mdTokoSelector');
+    const dd  = document.getElementById('mdTokoDropdown');
+    if (sel && !sel.contains(e.target) && dd && !dd.contains(e.target)) {
+        _mdDropdownOpen = false;
+        if (dd) dd.style.display = 'none';
+        document.removeEventListener('click', _mdOutsideClick);
+    }
+}
+async function pickMdToko(id, nama) {
+    _mdDropdownOpen = false;
+    const dd = document.getElementById('mdTokoDropdown');
+    if (dd) dd.style.display = 'none';
+    document.removeEventListener('click', _mdOutsideClick);
+    await loadTokoSetting(id, nama);
+    // Re-render list untuk update selected state
+    const wrap = document.getElementById('masterTokoList');
+    if (wrap) await renderMasterTokoList();
 }
 
 function toggleMasterKelolaToko() {

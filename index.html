@@ -1137,39 +1137,45 @@
             <!-- KANAN 25%: 4 blok vertikal -->
             <div style="display:flex;flex-direction:column;gap:12px;">
 
-                <!-- BLOK 1: DAFTAR TOKO -->
-                <div style="background:#fff;border:1.5px solid #ebebeb;border-radius:12px;padding:14px;">
-                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-                        <div style="font-size:0.75em;font-weight:800;color:#555;text-transform:uppercase;letter-spacing:0.8px;">Daftar Toko</div>
-                        <button id="btnTokoGerigi" onclick="toggleMasterKelolaToko()" title="Kelola toko" style="background:transparent;border:1px solid #e0e0e0;border-radius:6px;padding:4px 6px;cursor:pointer;display:flex;align-items:center;color:#888;transition:all 0.15s;">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                <!-- BLOK 1: PILIH TOKO (dropdown 1 baris) -->
+                <div style="background:#fff;border:1.5px solid #ebebeb;border-radius:12px;padding:14px;position:relative;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                        <div style="font-size:0.68em;font-weight:800;color:#555;text-transform:uppercase;letter-spacing:0.8px;">Toko yang diedit</div>
+                        <button id="btnTokoGerigi" onclick="toggleMasterKelolaToko()" title="Kelola toko"
+                            style="background:transparent;border:1px solid #e0e0e0;border-radius:6px;padding:4px 6px;cursor:pointer;display:flex;align-items:center;color:#888;">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
                         </button>
                     </div>
 
-                    <!-- Input tambah toko baru (muncul saat gerigi aktif) -->
-                    <div id="masterAddTokoRow" style="display:none;margin-bottom:8px;">
-                        <input type="text" id="masterNamaToko" placeholder="Nama toko baru..." maxlength="30"
-                            oninput="this.value=this.value.toUpperCase()"
-                            onkeydown="if(event.key==='Enter')masterTambahToko()"
-                            style="width:100%;padding:7px 10px;font-size:0.8em;border:1.5px solid #ee4d2d;border-radius:8px;margin-bottom:6px;outline:none;box-sizing:border-box;">
-                        <input type="text" id="masterDeskrip" placeholder="Deskripsi (opsional)"
-                            onkeydown="if(event.key==='Enter')masterTambahToko()"
-                            style="width:100%;padding:7px 10px;font-size:0.8em;border:1px solid #e0e0e0;border-radius:8px;margin-bottom:6px;outline:none;box-sizing:border-box;">
-                        <div style="display:flex;gap:6px;">
-                            <button onclick="masterTambahToko()" style="flex:1;background:#ee4d2d;color:#fff;border:none;padding:7px;border-radius:8px;font-size:0.8em;font-weight:700;cursor:pointer;">Tambah</button>
-                            <button onclick="toggleMasterKelolaToko()" style="background:#f5f5f5;color:#888;border:1px solid #e0e0e0;padding:7px 10px;border-radius:8px;font-size:0.8em;cursor:pointer;">Batal</button>
+                    <!-- 1 BARIS DROPDOWN SELECTOR -->
+                    <div id="mdTokoSelector" onclick="toggleMdTokoDropdown()"
+                        style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:#fafafa;border:1.5px solid #ee4d2d;border-radius:8px;cursor:pointer;">
+                        <div style="width:24px;height:24px;background:#ee4d2d;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
                         </div>
-                        <div id="masterTokoErr" style="display:none;font-size:0.75em;color:#ef4444;margin-top:4px;"></div>
+                        <div id="mdTokoSelectorLabel" style="flex:1;font-size:13px;font-weight:700;color:#1a1a2e;">Memuat...</div>
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
                     </div>
 
-                    <!-- List toko -->
-                    <div id="masterTokoList" style="display:flex;flex-direction:column;gap:4px;">
-                        <div style="font-size:0.78em;color:#bbb;text-align:center;padding:8px;">Memuat...</div>
-                    </div>
-
-                    <!-- Tombol Save (muncul saat mode kelola) -->
-                    <div id="masterSaveWrap" style="display:none;margin-top:8px;border-top:1px solid #f0f0f0;padding-top:8px;">
-                        <button onclick="masterSaveToko()" style="width:100%;background:#1a1a2e;color:#fff;border:none;padding:8px;border-radius:8px;font-size:0.8em;font-weight:700;cursor:pointer;">💾 Simpan</button>
+                    <!-- Dropdown list toko -->
+                    <div id="mdTokoDropdown" style="display:none;position:absolute;left:14px;right:14px;top:calc(100% - 8px);background:#fff;border:1.5px solid #e0e0e0;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.12);z-index:999;overflow:hidden;">
+                        <div id="masterTokoList" style="max-height:200px;overflow-y:auto;"></div>
+                        <!-- Mode kelola: tambah toko -->
+                        <div id="masterAddTokoRow" style="display:none;padding:8px;border-top:1px solid #f0f0f0;">
+                            <input type="text" id="masterNamaToko" placeholder="Nama toko baru..."
+                                maxlength="30" oninput="this.value=this.value.toUpperCase()"
+                                onkeydown="if(event.key==='Enter')masterTambahToko()"
+                                style="width:100%;padding:6px 8px;font-size:0.8em;border:1.5px solid #ee4d2d;border-radius:6px;margin-bottom:5px;outline:none;box-sizing:border-box;">
+                            <div style="display:flex;gap:5px;">
+                                <button onclick="masterTambahToko()" style="flex:1;background:#ee4d2d;color:#fff;border:none;padding:6px;border-radius:6px;font-size:0.78em;font-weight:700;cursor:pointer;">Tambah</button>
+                                <button onclick="masterTambahToko()" style="background:#f5f5f5;color:#888;border:1px solid #e0e0e0;padding:6px 8px;border-radius:6px;font-size:0.78em;cursor:pointer;">Batal</button>
+                            </div>
+                            <div id="masterTokoErr" style="display:none;font-size:0.72em;color:#ef4444;margin-top:3px;"></div>
+                        </div>
+                        <!-- Tombol save nama toko -->
+                        <div id="masterSaveWrap" style="display:none;padding:8px;border-top:1px solid #f0f0f0;">
+                            <button onclick="masterSaveToko()" style="width:100%;background:#1a1a2e;color:#fff;border:none;padding:7px;border-radius:6px;font-size:0.78em;font-weight:700;cursor:pointer;">💾 Simpan Nama</button>
+                        </div>
                     </div>
                 </div>
 

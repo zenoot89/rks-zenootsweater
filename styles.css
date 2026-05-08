@@ -409,21 +409,23 @@
         /* Kolom BULAN */
         .rekap-th-bulan {
             background:#1a1a2e;color:#fff;
-            padding:10px 0;text-align:center;
+            padding:8px 0;text-align:center;
             font-weight:800;font-size:0.78em;
-            width:120px;min-width:120px;
+            width:170px;min-width:170px;
             white-space:nowrap;
         }
-        .rekap-bulan-header { display:flex;align-items:center;justify-content:center;gap:6px;padding:0 10px; }
+        .rekap-bulan-header { display:flex;align-items:center;justify-content:center;gap:6px;padding:0 10px;flex-wrap:wrap; }
         .rekap-bulan-nama   { font-size:0.9em;letter-spacing:0.5px; }
         .rekap-del-btn { background:rgba(255,255,255,.12);border:none;color:rgba(255,255,255,.6);cursor:pointer;font-size:0.75em;padding:2px 5px;line-height:1;border-radius:3px;transition:all .15s; }
         .rekap-del-btn:hover { background:rgba(255,255,255,.25);color:#fff; }
+        .rekap-tempel-btn { background:#ee4d2d;border:none;color:#fff;cursor:pointer;font-size:0.68em;font-weight:800;padding:3px 8px;line-height:1.4;border-radius:4px;transition:all .15s;white-space:nowrap;margin-top:3px; }
+        .rekap-tempel-btn:hover { background:#d63b1f; }
 
         /* Sel data */
         .rekap-td-val {
-            text-align:right;padding:0 10px;height:34px;line-height:34px;
+            text-align:right;padding:0 12px;height:34px;line-height:34px;
             font-size:0.82em;font-weight:700;color:#222;white-space:nowrap;
-            width:120px;min-width:120px;
+            width:170px;min-width:170px;
         }
         .rekap-td-val.sub-val { font-weight:500;color:#888;font-size:0.78em; }
 

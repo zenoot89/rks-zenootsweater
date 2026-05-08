@@ -2405,7 +2405,6 @@ function salinOverview(btn, text) {
         btn.style.color = '#fff';
         setTimeout(() => { btn.innerHTML = orig; btn.style.background = ''; btn.style.color = ''; }, 1200);
     }).catch(() => {
-        // fallback
         const ta = document.createElement('textarea');
         ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
         document.body.appendChild(ta); ta.select(); document.execCommand('copy');
@@ -2416,6 +2415,99 @@ function salinOverview(btn, text) {
         btn.style.color = '#fff';
         setTimeout(() => { btn.innerHTML = orig; btn.style.background = ''; btn.style.color = ''; }, 1200);
     });
+}
+
+// ── SALIN SEMUA DATA OVERVIEW → untuk di-tempel ke Rekap ────────
+// Format: JSON string berisi semua key-value metrik
+let _clipboardOverviewData = null;
+
+function salinSemuaOverview(btn) {
+    const get = id => { const el = document.getElementById(id); return el ? smartParseNumber(el.value) : 0; };
+
+    const totalPendapatan = get('rk_totalPendapatan') || (rkData.income?.totalPendapatan || 0);
+    const totalPenghasilan = get('rk_totalPenghasilan') || (rkData.income?.totalPenghasilan || 0);
+    const _hppFromData = (rkData.order1?.totalHpp || 0) + (rkData.order2?.totalHpp || 0);
+    const hpp  = get('rk_hppTotal') || _hppFromData;
+    const opr  = get('rk_oprTotal') || smartParseNumber(localStorage.getItem('oprTotalMonth') || '0');
+    const iklan = rkData.ads?.totalAds || 0;
+    const ams       = get('rk_amsTotal')   || (rkData.income?.adminBreakdown?.ams      || 0);
+    const adminFee  = get('rk_adminTotal') || (rkData.income?.adminBreakdown?.admin    || 0);
+    const layanan   = rkData.income?.adminBreakdown?.layanan   || 0;
+    const proses    = rkData.income?.adminBreakdown?.proses    || 0;
+    const kampanye  = rkData.income?.adminBreakdown?.kampanye  || 0;
+    const totalOrder = rkData.order1?.totalOrder || 0;
+    const aov = totalOrder > 0 ? Math.round(totalPendapatan / totalOrder) : 0;
+    const roasAktual = iklan > 0 ? parseFloat((totalPendapatan / iklan).toFixed(2)) : 0;
+    const acosAktual = totalPendapatan > 0 ? parseFloat(((iklan / totalPendapatan) * 100).toFixed(2)) : 0;
+    const labaRugi   = totalPenghasilan - hpp - opr - iklan;
+    const gpm = totalPendapatan > 0 ? parseFloat(((totalPendapatan - hpp) / totalPendapatan * 100).toFixed(2)) : 0;
+    const npm = totalPendapatan > 0 ? parseFloat((labaRugi / totalPendapatan * 100).toFixed(2)) : 0;
+
+    _clipboardOverviewData = {
+        pendapatan:  totalPendapatan,
+        penghasilan: totalPenghasilan,
+        hpp,
+        operasional: opr,
+        iklan,
+        ams,
+        adminFee,
+        layanan,
+        proses,
+        kampanye,
+        aov,
+        totalOrder,
+        roas: roasAktual,
+        acos: acosAktual,
+        gpm,
+        npm,
+        laba: labaRugi
+    };
+
+    // Tampilkan feedback
+    const orig = btn.innerHTML;
+    btn.innerHTML = '✅ Tersalin!';
+    btn.style.background = 'rgba(34,197,94,0.3)';
+    setTimeout(() => { btn.innerHTML = orig; btn.style.background = 'rgba(255,255,255,0.2)'; }, 2000);
+}
+
+// ── TEMPEL DATA KE KOLOM BULAN DI REKAP ─────────────────────────
+function empelDataKeRekap(bulanIdx) {
+    if (!_clipboardOverviewData) {
+        alert('Belum ada data yang disalin.\nKlik tombol "📋 Salin Semua" di Overview dulu.');
+        return;
+    }
+    if (!rekapData[bulanIdx]) return;
+    const d = _clipboardOverviewData;
+    rekapData[bulanIdx].data = {
+        pendapatan:  d.pendapatan,
+        penghasilan: d.penghasilan,
+        hpp:         d.hpp,
+        operasional: d.operasional,
+        iklan:       d.iklan,
+        ams:         d.ams,
+        adminFee:    d.adminFee,
+        layanan:     d.layanan,
+        proses:      d.proses,
+        kampanye:    d.kampanye,
+        aov:         d.aov,
+        totalOrder:  d.totalOrder,
+        roas:        d.roas,
+        acos:        d.acos,
+        gpm:         d.gpm,
+        npm:         d.npm,
+        laba:        d.laba
+    };
+    saveRekap();
+    renderRekapTable();
+    // Flash kolom yang baru ditempel
+    setTimeout(() => {
+        const cells = document.querySelectorAll(`[data-bulan-idx="${bulanIdx}"]`);
+        cells.forEach(c => {
+            c.style.transition = 'background 0.3s';
+            c.style.background = '#d1fae5';
+            setTimeout(() => { c.style.background = ''; }, 1500);
+        });
+    }, 100);
 }
 
 // ── UPDATE DASHBOARD ──────────────────────────────────────────
@@ -3830,6 +3922,11 @@ function renderRekapTable() {
             <div class="rekap-bulan-header">
                 <span class="rekap-bulan-nama">${b.bulan}</span>
                 <button class="rekap-del-btn" onclick="hapusBulanRekap(${i})" title="Hapus bulan">✕</button>
+            </div>
+            <div style="padding:3px 6px 4px;">
+                <button class="rekap-tempel-btn" onclick="empelDataKeRekap(${i})" title="Tempel data dari Overview ke bulan ini">
+                    📥 Tempel
+                </button>
             </div>
         </th>`;
     });

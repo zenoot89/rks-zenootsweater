@@ -3730,8 +3730,29 @@ function updateRekapCell(bulanIdx, key, val) {
 }
 
 function parseRekapNum(v) {
-    if (!v) return 0;
-    return parseFloat(String(v).replace(/[Rp.\s]/g,'').replace(',','.')) || 0;
+    if (v === null || v === undefined || v === '') return 0;
+    if (typeof v === 'number') return v;
+    // Hapus simbol Rp, spasi, tapi JANGAN hapus titik desimal
+    // Titik sebagai separator ribuan (1.000.000) → hapus
+    // Titik sebagai desimal (23.52, 4.25) → pertahankan
+    let s = String(v).replace(/[Rp\s]/g, '');
+    // Deteksi format ribuan: ada titik tapi diikuti tepat 3 digit lalu titik/koma/akhir
+    // Contoh: "8.245.634" → hapus titik ribuan
+    // Contoh: "23.52" → pertahankan titik
+    const dotsCount = (s.match(/\./g) || []).length;
+    if (dotsCount > 1) {
+        // Pasti separator ribuan (mis: 8.245.634) → hapus semua titik
+        s = s.replace(/\./g, '');
+    } else if (dotsCount === 1) {
+        // Cek: titik diikuti tepat 3 digit dan tidak ada karakter lain → separator ribuan
+        // Contoh: "2.500" → ribuan; "23.52" → desimal
+        if (/\.\d{3}$/.test(s)) {
+            s = s.replace(/\./g, ''); // separator ribuan
+        }
+        // else: titik desimal, biarkan
+    }
+    s = s.replace(',', '.'); // koma desimal → titik
+    return parseFloat(s) || 0;
 }
 
 // ─── REKAP: state toko yang sedang dilihat ───────────────────────

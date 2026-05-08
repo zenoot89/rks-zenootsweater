@@ -377,24 +377,85 @@
         .hpp-val { font-weight:800;color:#166534; }
 
         /* Rekap Tahunan */
-        .rekap-th-metrik { background:#ee4d2d;color:#fff;padding:9px 14px;text-align:left;font-weight:800;font-size:0.82em;letter-spacing:0.5px;white-space:nowrap;min-width:180px;position:sticky;left:0;z-index:2; }
-        .rekap-th-bulan  { background:#1a1a2e;color:#fff;padding:9px 14px;text-align:center;font-weight:800;font-size:0.8em;min-width:130px;white-space:nowrap; }
-        .rekap-td-label  { padding:7px 14px;font-weight:700;color:#222;background:#fff;font-size:0.84em;white-space:nowrap;position:sticky;left:0;z-index:1;border-right:2px solid #f0f0f0; }
-        .rekap-td-label.sub { font-weight:500;color:#666;padding-left:22px; }
-        .rekap-td-label.header-row { background:#fef9c3;color:#92400e;font-weight:800;font-size:0.76em;text-transform:uppercase;letter-spacing:0.5px; }
-        .rekap-td-input  { padding:4px 8px;text-align:right; }
-        .rekap-td-input input { width:100%;border:1px solid transparent;border-radius:5px;padding:5px 8px;font-size:0.84em;font-weight:700;text-align:right;outline:none;background:transparent;transition:all 0.15s; }
-        .rekap-td-input input:focus { border-color:#ee4d2d;background:#fff9f8; }
-        .rekap-row-even td { background:#f8f8f8; }
-        .rekap-row-even .rekap-td-label { background:#f8f8f8; }
+        /* ── REKAP TAHUNAN ── */
+        #rekapScrollOuter { scrollbar-width:thin;scrollbar-color:#ee4d2d44 #f5f5f5; }
+        #rekapScrollOuter::-webkit-scrollbar { height:6px; }
+        #rekapScrollOuter::-webkit-scrollbar-track { background:#f5f5f5; }
+        #rekapScrollOuter::-webkit-scrollbar-thumb { background:#ee4d2d66;border-radius:3px; }
+        #rekapTable { min-width:max-content; }
+
+        /* Kolom FROZEN kiri */
+        .rekap-th-metrik {
+            position:sticky;left:0;z-index:3;
+            background:#ee4d2d;color:#fff;
+            padding:10px 16px;text-align:left;
+            font-weight:800;font-size:0.78em;letter-spacing:0.8px;
+            white-space:nowrap;width:190px;min-width:190px;max-width:190px;
+            box-shadow:3px 0 8px rgba(0,0,0,.10);
+        }
+        .rekap-td-label {
+            position:sticky;left:0;z-index:1;
+            padding:0 16px;height:34px;line-height:34px;
+            font-weight:700;color:#222;font-size:0.82em;
+            white-space:nowrap;width:190px;min-width:190px;max-width:190px;
+            box-shadow:3px 0 6px rgba(0,0,0,.06);
+            border-right:2px solid #e8e8e8;
+        }
+        .rekap-td-label.sub      { font-weight:500;color:#777;font-size:0.78em;padding-left:28px; }
+        .rekap-td-label.header-row { background:#fff8e7!important;color:#92400e;font-weight:800;font-size:0.72em;text-transform:uppercase;letter-spacing:0.8px; }
+        .rekap-td-label.laba-lbl  { background:#fff0f0!important;color:#991b1b;font-weight:800;font-size:0.84em; }
+        .rekap-td-label.laba-lbl.pos { background:#f0fdf4!important;color:#166534; }
+
+        /* Kolom BULAN */
+        .rekap-th-bulan {
+            background:#1a1a2e;color:#fff;
+            padding:10px 0;text-align:center;
+            font-weight:800;font-size:0.78em;
+            width:120px;min-width:120px;
+            white-space:nowrap;
+        }
+        .rekap-bulan-header { display:flex;align-items:center;justify-content:center;gap:6px;padding:0 10px; }
+        .rekap-bulan-nama   { font-size:0.9em;letter-spacing:0.5px; }
+        .rekap-del-btn { background:rgba(255,255,255,.12);border:none;color:rgba(255,255,255,.6);cursor:pointer;font-size:0.75em;padding:2px 5px;line-height:1;border-radius:3px;transition:all .15s; }
+        .rekap-del-btn:hover { background:rgba(255,255,255,.25);color:#fff; }
+
+        /* Sel data */
+        .rekap-td-val {
+            text-align:right;padding:0 10px;height:34px;line-height:34px;
+            font-size:0.82em;font-weight:700;color:#222;white-space:nowrap;
+            width:120px;min-width:120px;
+        }
+        .rekap-td-val.sub-val { font-weight:500;color:#888;font-size:0.78em; }
+
+        /* Baris GENAP/GANJIL */
         .rekap-row-odd  td { background:#fff; }
+        .rekap-row-even td { background:#f9f9f9; }
         .rekap-row-odd  .rekap-td-label { background:#fff; }
-        .rekap-row-header td { background:#fef9c3; }
-        .rekap-row-laba td  { background:#fff0f0;font-weight:800;color:#991b1b;border-top:2px solid #ef4444; }
-        .rekap-row-laba.positif td { background:#f0fdf4;color:#166534;border-top:2px solid #22c55e; }
-        .rekap-bulan-header { display:flex;align-items:center;justify-content:center;gap:6px; }
-        .rekap-del-btn { background:none;border:none;color:rgba(255,255,255,0.5);cursor:pointer;font-size:0.85em;padding:0 2px;line-height:1; }
-        .rekap-del-btn:hover { color:#fff; }
+        .rekap-row-even .rekap-td-label { background:#f9f9f9; }
+
+        /* Baris HEADER SECTION */
+        .rekap-row-header td         { background:#fff8e7;border-top:1px solid #fde68a; }
+        .rekap-row-header .rekap-td-label { background:#fff8e7; }
+
+        /* Baris LABA/RUGI */
+        .rekap-row-laba td           { background:#fff0f0;border-top:2px solid #fca5a5; }
+        .rekap-row-laba .rekap-td-label { background:#fff0f0; }
+        .rekap-row-laba.pos td       { background:#f0fdf4;border-top:2px solid #86efac; }
+        .rekap-row-laba.pos .rekap-td-label { background:#f0fdf4; }
+
+        /* Sel nilai LABA */
+        .rekap-laba-cell { font-weight:900;font-size:0.88em; }
+        .rekap-laba-cell.rugi { color:#dc2626; }
+        .rekap-laba-cell.untung { color:#16a34a; }
+
+        /* Dropdown toko rekap */
+        .rekap-toko-item {
+            display:flex;align-items:center;gap:8px;
+            padding:8px 14px;cursor:pointer;font-size:0.82em;font-weight:600;color:#333;
+            transition:background .12s;
+        }
+        .rekap-toko-item:hover { background:#fff5f5; }
+        .rekap-toko-item.aktif { color:#ee4d2d;background:#fff5f0; }
     
         
 

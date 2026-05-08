@@ -3445,32 +3445,20 @@ const REKAP_METRIK = [
 let rekapData = [];
 
 async function loadRekap() {
-    // Coba dari Supabase dulu
-    if (typeof rekapGetAll === 'function' && typeof getAktifTokoId === 'function' && getAktifTokoId()) {
-        try {
-            const rows = await rekapGetAll();
-            if (rows && rows.length > 0) {
-                rekapData = rows.map(r => ({
-                    bulan: r.periode,
-                    data: {
-                        pendapatan: r.total_pendapatan, penghasilan: r.total_penghasilan,
-                        hpp: r.hpp, operasional: r.operasional, iklan: r.iklan,
-                        ams: r.admin_ams, adminFee: r.admin_fee, layanan: r.admin_layanan,
-                        proses: r.admin_proses, kampanye: r.isi_saldo,
-                        aov: r.aov, totalOrder: r.total_order, roas: r.roas,
-                        acos: r.roas > 0 ? (100/r.roas).toFixed(2) : 0,
-                        gpm: r.gpm, npm: r.npm, laba: r.laba_rugi
-                    }
-                }));
-                renderRekapTable();
-                return;
-            }
-        } catch(e) { console.warn('Supabase rekap load error:', e); }
+    // Init dropdown toko rekap
+    await initRekapTokoDropdown();
+    // Auto-pilih toko aktif jika belum ada pilihan
+    if (!_rekapTokoId && typeof getAktifTokoId === 'function' && getAktifTokoId()) {
+        const tid  = getAktifTokoId();
+        const tnam = typeof getAktifTokoNama === 'function' ? getAktifTokoNama() : '';
+        await pilihRekapToko(tid, tnam);
+        return;
     }
-    // Fallback ke localStorage
-    const tokoKey = 'rekapTahunan_' + (typeof getAktifTokoNama === 'function' ? getAktifTokoNama() : 'default');
-    const saved = localStorage.getItem(tokoKey) || localStorage.getItem('rekapTahunan');
-    if (saved) rekapData = JSON.parse(saved);
+    if (_rekapTokoId) {
+        await loadRekapForToko(_rekapTokoId);
+        return;
+    }
+    rekapData = [];
     renderRekapTable();
 }
 
@@ -3499,13 +3487,18 @@ async function saveRekap() {
 }
 
 function tambahBulanRekap() {
-    const bulanNames = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+    if (!_rekapTokoId) {
+        alert('Pilih toko dulu sebelum menambah bulan.');
+        return;
+    }
+    const bulanNames = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'];
     const nextIdx = rekapData.length % 12;
-    const nama = prompt('Nama bulan:', bulanNames[nextIdx] + ' ' + (document.getElementById('rekap_tahun').value||new Date().getFullYear()));
+    const tahun = (document.getElementById('rekap_tahun').value || new Date().getFullYear());
+    const nama = prompt('Nama bulan (cth: Jan 2026):', bulanNames[nextIdx] + ' ' + tahun);
     if (!nama) return;
     const emptyData = {};
     REKAP_METRIK.forEach(m => { if (m.type !== 'header') emptyData[m.key] = ''; });
-    rekapData.push({ bulan: nama, data: emptyData });
+    rekapData.push({ bulan: nama.trim(), data: emptyData });
     saveRekap();
     renderRekapTable();
 }
@@ -3563,6 +3556,126 @@ function parseRekapNum(v) {
     return parseFloat(String(v).replace(/[Rp.\s]/g,'').replace(',','.')) || 0;
 }
 
+// ─── REKAP: state toko yang sedang dilihat ───────────────────────
+let _rekapTokoId   = null;
+let _rekapTokoNama = null;
+let _rekapDropOpen = false;
+
+async function initRekapTokoDropdown() {
+    const list = typeof tokoGetAll === 'function' ? await tokoGetAll() : [];
+    const wrap = document.getElementById('rekapTokoList');
+    if (!wrap) return;
+    if (!list || list.length === 0) {
+        wrap.innerHTML = '<div style="padding:10px 14px;font-size:0.78em;color:#bbb;">Belum ada toko</div>';
+        return;
+    }
+    const aktifId = typeof getAktifTokoId === 'function' ? getAktifTokoId() : null;
+    wrap.innerHTML = list.map(t => `
+        <div class="rekap-toko-item ${t.id === _rekapTokoId ? 'aktif' : ''}"
+             onclick="pilihRekapToko('${t.id}','${t.nama}')">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                 stroke="${t.id === _rekapTokoId ? '#ee4d2d' : '#ccc'}" stroke-width="2.2">
+                <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+            </svg>
+            <span>${t.nama}</span>
+            ${t.id === aktifId ? '<span style="font-size:9px;background:#ee4d2d;color:#fff;padding:1px 5px;border-radius:3px;margin-left:auto;">AKTIF</span>' : ''}
+        </div>
+    `).join('');
+
+    // Auto-pilih toko aktif jika belum dipilih
+    if (!_rekapTokoId && aktifId) {
+        const aktif = list.find(t => t.id === aktifId);
+        if (aktif) pilihRekapToko(aktif.id, aktif.nama);
+    }
+}
+
+function toggleRekapTokoDropdown() {
+    _rekapDropOpen = !_rekapDropOpen;
+    const dd = document.getElementById('rekapTokoDropdown');
+    if (!dd) return;
+    if (_rekapDropOpen) {
+        dd.style.display = 'block';
+        initRekapTokoDropdown();
+        setTimeout(() => document.addEventListener('click', _rekapOutsideClick), 50);
+    } else {
+        dd.style.display = 'none';
+    }
+}
+function _rekapOutsideClick(e) {
+    const wrap = document.getElementById('rekapTokoSelectorWrap');
+    if (wrap && !wrap.contains(e.target)) {
+        _rekapDropOpen = false;
+        const dd = document.getElementById('rekapTokoDropdown');
+        if (dd) dd.style.display = 'none';
+        document.removeEventListener('click', _rekapOutsideClick);
+    }
+}
+
+async function pilihRekapToko(id, nama) {
+    _rekapTokoId   = id;
+    _rekapTokoNama = nama;
+    _rekapDropOpen = false;
+    const dd = document.getElementById('rekapTokoDropdown');
+    if (dd) dd.style.display = 'none';
+    document.removeEventListener('click', _rekapOutsideClick);
+
+    const lbl = document.getElementById('rekapTokoLabel');
+    if (lbl) lbl.textContent = nama;
+
+    const info = document.getElementById('rekapTokoInfo');
+    const infoTxt = document.getElementById('rekapTokoInfoText');
+    if (info && infoTxt) {
+        info.style.display = 'flex';
+        infoTxt.textContent = 'Menampilkan data toko: ' + nama;
+    }
+
+    // Load data toko ini
+    await loadRekapForToko(id);
+}
+
+async function loadRekapForToko(tokoId) {
+    // Coba Supabase
+    if (typeof supaFetch === 'function' && tokoId) {
+        try {
+            const rows = await supaFetch(`rekap_bulanan?toko_id=eq.${tokoId}&select=*&order=periode.asc`);
+            if (rows && rows.length > 0) {
+                rekapData = rows.map(r => ({
+                    bulan: r.periode,
+                    data: {
+                        pendapatan: r.total_pendapatan, penghasilan: r.total_penghasilan,
+                        hpp: r.hpp, operasional: r.operasional, iklan: r.iklan,
+                        ams: r.admin_ams, adminFee: r.admin_fee, layanan: r.admin_layanan,
+                        proses: r.admin_proses, kampanye: r.isi_saldo,
+                        aov: r.aov, totalOrder: r.total_order, roas: r.roas,
+                        acos: r.roas > 0 ? (100/r.roas).toFixed(2) : 0,
+                        gpm: r.gpm, npm: r.npm, laba: r.laba_rugi
+                    }
+                }));
+                renderRekapTable();
+                return;
+            }
+        } catch(e) { console.warn('rekap supabase err:', e); }
+    }
+    // Fallback localStorage
+    const key = 'rekapTahunan_' + (tokoId || 'default');
+    const saved = localStorage.getItem(key);
+    rekapData = saved ? JSON.parse(saved) : [];
+    renderRekapTable();
+}
+
+function _fmtRekap(val, type) {
+    const n = parseRekapNum(val);
+    if (!n && n !== 0) return '—';
+    if (type === 'rp' || type === 'rp-neg') {
+        if (n === 0) return '—';
+        return (n < 0 ? '(' + formatRp(Math.abs(n)) + ')' : formatRp(n));
+    }
+    if (type === 'pct') return n !== 0 ? n.toFixed(2) + '%' : '—';
+    if (type === 'num') return n !== 0 ? parseFloat(n).toFixed(2) : '—';
+    if (type === 'qty') return n !== 0 ? parseInt(n).toLocaleString('id-ID') : '—';
+    return val || '—';
+}
+
 function renderRekapTable() {
     const empty = document.getElementById('rekapEmpty');
     const thead = document.getElementById('rekapThead');
@@ -3577,48 +3690,78 @@ function renderRekapTable() {
     }
     if (empty) empty.style.display = 'none';
 
-    // Header
-    let thHtml = '<tr><th class="rekap-th-metrik">METRIK</th>';
+    // ── HEADER ──
+    let thHtml = '<tr>';
+    thHtml += '<th class="rekap-th-metrik">METRIK</th>';
     rekapData.forEach((b, i) => {
-        thHtml += `<th class="rekap-th-bulan"><div class="rekap-bulan-header"><span>${b.bulan}</span><button class="rekap-del-btn" onclick="hapusBulanRekap(${i})" title="Hapus">✕</button></div></th>`;
+        thHtml += `<th class="rekap-th-bulan">
+            <div class="rekap-bulan-header">
+                <span class="rekap-bulan-nama">${b.bulan}</span>
+                <button class="rekap-del-btn" onclick="hapusBulanRekap(${i})" title="Hapus bulan">✕</button>
+            </div>
+        </th>`;
     });
     thHtml += '</tr>';
     thead.innerHTML = thHtml;
 
-    // Body
+    // ── BODY ──
     let tbHtml = '';
     let rowIdx = 0;
+
     REKAP_METRIK.forEach(m => {
         if (m.type === 'header') {
-            tbHtml += `<tr class="rekap-row-header"><td class="rekap-td-label header-row" colspan="${rekapData.length+1}">${m.label}</td></tr>`;
+            tbHtml += `<tr class="rekap-row-header">
+                <td class="rekap-td-label header-row">${m.label}</td>
+                ${rekapData.map(() => '<td class="rekap-td-val" style="background:#fff8e7;"></td>').join('')}
+            </tr>`;
             return;
         }
-        const isEven = rowIdx % 2 === 0;
-        rowIdx++;
-        const rowCls = m.rowClass === 'laba' ? 'rekap-row-laba' : (isEven ? 'rekap-row-even' : 'rekap-row-odd');
-        const labelCls = m.rowClass === 'sub' ? 'rekap-td-label sub' : 'rekap-td-label';
 
-        tbHtml += `<tr class="${rowCls}"><td class="${labelCls}">${m.label}</td>`;
-
-        rekapData.forEach((b, i) => {
-            const val = b.data[m.key] || '';
-            if (m.type === 'laba') {
-                // Computed, read-only display
-                const pend = parseRekapNum(b.data.pendapatan);
+        if (m.type === 'laba') {
+            // Hitung laba semua bulan dulu untuk tahu apakah semua positif
+            const labaArr = rekapData.map(b => {
                 const peng = parseRekapNum(b.data.penghasilan);
                 const hpp  = parseRekapNum(b.data.hpp);
                 const opr  = parseRekapNum(b.data.operasional);
                 const ikl  = parseRekapNum(b.data.iklan);
-                const laba = peng - hpp - opr - ikl;
-                const isPos = laba >= 0;
-                tbHtml += `<td class="rekap-td-input" style="text-align:center;font-weight:800;color:${isPos?'#166534':'#991b1b'};" id="rc_${i}_${m.key}">${laba!==0?(isPos?formatRp(laba):'('+formatRp(Math.abs(laba))+')'):'—'}</td>`;
-            } else {
-                const inputStyle = m.rowClass==='sub' ? 'color:#666;' : (m.rowClass==='normal bold'||m.rowClass==='normal'?'font-weight:700;color:#222;':'');
-                tbHtml += `<td class="rekap-td-input"><input type="text" id="rc_${i}_${m.key}" value="${val}" placeholder="—" style="${inputStyle}" oninput="updateRekapCell(${i},'${m.key}',this.value)" onfocus="this.select()"></td>`;
-            }
-        });
-        tbHtml += '</tr>';
+                return peng - hpp - opr - ikl;
+            });
+            const anyPos = labaArr.some(l => l > 0);
+            const allPos = labaArr.every(l => l >= 0);
+            const rowCls = allPos ? 'rekap-row-laba pos' : 'rekap-row-laba';
+            const lblCls = 'rekap-td-label laba-lbl' + (allPos ? ' pos' : '');
+
+            tbHtml += `<tr class="${rowCls}">
+                <td class="${lblCls}">LABA / RUGI</td>
+                ${labaArr.map((laba, i) => {
+                    const isPos = laba >= 0;
+                    const display = laba !== 0
+                        ? (isPos ? formatRp(laba) : '(' + formatRp(Math.abs(laba)) + ')')
+                        : '—';
+                    return `<td class="rekap-td-val rekap-laba-cell ${isPos ? 'untung' : 'rugi'}" id="rc_${i}_laba">${display}</td>`;
+                }).join('')}
+            </tr>`;
+            return;
+        }
+
+        const isEven = rowIdx % 2 === 0;
+        rowIdx++;
+        const isSub  = m.rowClass === 'sub';
+        const rowCls = isEven ? 'rekap-row-even' : 'rekap-row-odd';
+        const lblCls = 'rekap-td-label' + (isSub ? ' sub' : '');
+        const valCls = 'rekap-td-val' + (isSub ? ' sub-val' : '');
+
+        tbHtml += `<tr class="${rowCls}">
+            <td class="${lblCls}">${m.label}</td>
+            ${rekapData.map((b, i) => {
+                const raw = b.data[m.key];
+                const display = _fmtRekap(raw, m.type);
+                const color = m.type === 'rp-neg' && parseRekapNum(raw) < 0 ? 'color:#dc2626;' : '';
+                return `<td class="${valCls}" style="${color}">${display}</td>`;
+            }).join('')}
+        </tr>`;
     });
+
     tbody.innerHTML = tbHtml;
 }
 

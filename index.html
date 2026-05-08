@@ -863,31 +863,60 @@
     </div>
 
     <div id="tab-rasio_rekap" class="tab-panel">
+        <!-- HEADER -->
         <div class="tab-page-header">
             <div>
                 <div class="tab-page-title"><div class="tab-page-title-icon">🗒️</div> Rekap Tahunan</div>
-                <div class="tab-page-subtitle">Input manual per bulan — copy dari metrik Overview</div>
+                <div class="tab-page-subtitle" id="rekapSubtitle">Per toko — nama baris beku, kolom bulan bisa digeser</div>
             </div>
-            <div style="display:flex;gap:8px;align-items:center;">
-                <input type="text" id="rekap_tahun" placeholder="cth: 2026" style="border:1.5px solid #ddd;border-radius:8px;padding:6px 12px;font-size:0.88em;font-weight:700;outline:none;width:110px;" oninput="renderRekapTable()">
-                <button onclick="tambahBulanRekap()" style="background:#3730a3;color:#fff;border:none;padding:7px 14px;border-radius:8px;font-size:0.8em;font-weight:700;cursor:pointer;">+ Tambah Bulan</button>
-                <button onclick="resetRekap()" style="background:#fff1f0;border:1px solid #ffccc7;color:#d93025;padding:7px 14px;border-radius:8px;font-size:0.8em;font-weight:700;cursor:pointer;">🔄 Reset</button>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                <!-- Selector Toko -->
+                <div style="position:relative;" id="rekapTokoSelectorWrap">
+                    <button id="rekapTokoBtn" onclick="toggleRekapTokoDropdown()"
+                        style="display:flex;align-items:center;gap:8px;background:#fff;border:1.5px solid #ddd;border-radius:8px;padding:6px 12px;font-size:0.8em;font-weight:700;cursor:pointer;min-width:140px;color:#333;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ee4d2d" stroke-width="2.2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                        <span id="rekapTokoLabel">Pilih Toko</span>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                    <div id="rekapTokoDropdown" style="display:none;position:absolute;top:calc(100% + 6px);left:0;background:#fff;border:1.5px solid #ebebeb;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:200;min-width:180px;overflow:hidden;" id="rekapTokoDropdown">
+                        <div id="rekapTokoList" style="padding:6px 0;max-height:200px;overflow-y:auto;"></div>
+                    </div>
+                </div>
+                <!-- Input tahun -->
+                <input type="text" id="rekap_tahun" placeholder="2026" maxlength="4"
+                    style="border:1.5px solid #ddd;border-radius:8px;padding:6px 10px;font-size:0.88em;font-weight:700;outline:none;width:72px;text-align:center;"
+                    oninput="renderRekapTable()">
+                <!-- Tombol aksi -->
+                <button onclick="tambahBulanRekap()"
+                    style="background:#ee4d2d;color:#fff;border:none;padding:7px 14px;border-radius:8px;font-size:0.8em;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Bulan
+                </button>
+                <button onclick="resetRekap()"
+                    style="background:#fff;border:1.5px solid #fca5a5;color:#ef4444;padding:7px 12px;border-radius:8px;font-size:0.8em;font-weight:700;cursor:pointer;">
+                    Reset
+                </button>
             </div>
         </div>
 
-        <!-- Info cara pakai -->
-        <div style="background:#f0f4ff;border:1px solid #c7d2fe;border-radius:10px;padding:11px 16px;margin-bottom:14px;font-size:0.78em;color:#3730a3;line-height:1.8;">
-            <strong>Cara pakai:</strong> Klik <b>+ Tambah Bulan</b> → isi nama bulan → salin angka dari tab Overview ke kolom yang sesuai. Data tersimpan otomatis di browser.
+        <!-- Toko badge info -->
+        <div id="rekapTokoInfo" style="display:none;background:#fff8f0;border:1px solid #fde68a;border-radius:8px;padding:9px 14px;margin-bottom:12px;font-size:0.78em;color:#92400e;display:flex;align-items:center;gap:8px;">
+            <span>🏪</span>
+            <span id="rekapTokoInfoText">—</span>
         </div>
 
-        <!-- TABEL REKAP — scroll horizontal -->
-        <div style="background:#fff;border-radius:12px;overflow:hidden;border:1.5px solid #ebebeb;overflow-x:auto;">
-            <table id="rekapTable" style="width:100%;border-collapse:collapse;font-size:0.82em;min-width:700px;">
-                <thead id="rekapThead"></thead>
-                <tbody id="rekapTbody"></tbody>
-            </table>
-            <div id="rekapEmpty" style="text-align:center;padding:32px;color:#bbb;font-size:0.85em;">
-                Belum ada data. Klik <b>+ Tambah Bulan</b> untuk mulai.
+        <!-- WRAPPER TABEL — frozen col kiri, scroll kanan -->
+        <div id="rekapTableWrap" style="position:relative;background:#fff;border-radius:12px;border:1.5px solid #ebebeb;overflow:hidden;">
+            <!-- scroll container -->
+            <div id="rekapScrollOuter" style="overflow-x:auto;overflow-y:visible;">
+                <table id="rekapTable" style="border-collapse:collapse;font-size:0.82em;table-layout:fixed;">
+                    <thead id="rekapThead"></thead>
+                    <tbody id="rekapTbody"></tbody>
+                </table>
+            </div>
+            <div id="rekapEmpty" style="text-align:center;padding:48px 20px;color:#bbb;font-size:0.85em;display:none;">
+                <div style="font-size:2em;margin-bottom:10px;">📊</div>
+                <div style="font-weight:700;color:#ccc;margin-bottom:6px;">Belum ada data</div>
+                Pilih toko & klik <b style="color:#ee4d2d;">+ Bulan</b> untuk mulai merekap.
             </div>
         </div>
     </div>

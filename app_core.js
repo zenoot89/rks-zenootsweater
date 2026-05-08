@@ -3814,24 +3814,21 @@ async function pilihRekapToko(id, nama) {
 async function loadRekapForToko(tokoId) {
     const bulanNames = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'];
 
-    // ── Helper: pastikan rekapData selalu 12 bulan ──────────────
-    function _padTo12Bulan(tahun) {
-        // Deteksi tahun dari data yang ada jika tidak ada input
+    // ── Helper: sort + tambal sampai 12 bulan ──────────────────
+    function _normalisasiRekap(tahun) {
         const usedTahun = tahun || (rekapData.length > 0
             ? String(rekapData[0].bulan).split(' ')[1] || new Date().getFullYear()
             : new Date().getFullYear());
 
-        // Kumpulkan nama bulan yang sudah ada (prefix "Jan", "Feb", dst)
+        // Tambal bulan yang belum ada
         const existingPrefixes = new Set(rekapData.map(b => String(b.bulan).split(' ')[0]));
-
-        // Tambahkan bulan yang belum ada, urut Jan→Des
         bulanNames.forEach(bNama => {
             if (!existingPrefixes.has(bNama)) {
                 rekapData.push({ bulan: bNama + ' ' + usedTahun, data: _makeEmptyRekapData() });
             }
         });
 
-        // Sort Jan→Des berdasarkan index bulanNames
+        // SELALU sort Jan→Des
         rekapData.sort((a, b) => {
             const ai = bulanNames.indexOf(String(a.bulan).split(' ')[0]);
             const bi = bulanNames.indexOf(String(b.bulan).split(' ')[0]);
@@ -3858,8 +3855,8 @@ async function loadRekapForToko(tokoId) {
                         gpm: r.gpm, npm: r.npm, laba: r.laba_rugi
                     }
                 }));
-                // Tambal sampai 12 bulan jika kurang
-                if (rekapData.length < 12) _padTo12Bulan(tahunInput);
+                // Selalu normalisasi: sort + tambal jika kurang 12
+                _normalisasiRekap(tahunInput);
                 saveRekap();
                 renderRekapTable();
                 return;
@@ -3876,11 +3873,9 @@ async function loadRekapForToko(tokoId) {
     const saved = localStorage.getItem(key);
     if (saved) {
         rekapData = JSON.parse(saved);
-        // Tambal sampai 12 bulan jika kurang
-        if (rekapData.length < 12) _padTo12Bulan(tahunInput);
+        _normalisasiRekap(tahunInput);
         saveRekap();
     } else {
-        // Auto-init 12 bulan untuk tahun sekarang
         _initRekap12Bulan(tahunInput);
         saveRekap();
     }

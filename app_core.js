@@ -2520,7 +2520,8 @@ function updateRasioDashboard() {
     // ── Tombol Salin ──────────────────────────────────────────────
     const _salinBtnStyle = `display:inline-flex;align-items:center;justify-content:center;margin-left:5px;padding:2px 6px;border-radius:5px;border:1px solid #e5e7eb;background:#f9fafb;color:#555;font-size:0.68em;font-weight:700;cursor:pointer;vertical-align:middle;line-height:1;transition:background 0.15s;`;
     const salinBtn = (rawText) => {
-        const escaped = rawText.replace(/'/g,"&#39;").replace(/"/g,'&quot;');
+        const val = rawText !== undefined && rawText !== null && rawText !== '' ? String(rawText) : '0';
+        const escaped = val.replace(/'/g,"&#39;").replace(/"/g,'&quot;');
         return `<button style="${_salinBtnStyle}" onclick="salinOverview(this,'${escaped}')" title="Salin">📋</button>`;
     };
 
@@ -2571,7 +2572,7 @@ function updateRasioDashboard() {
                         <span style="font-size:0.68em;font-weight:600;color:#6b7280;letter-spacing:0.3px;margin-left:6px;">(base harga)</span>
                     </td>
                     <td style="text-align:right;font-size:1em;color:#1a1a1a;font-weight:900;letter-spacing:0.3px;">${tAdmV}${salinBtn(tAdmVRaw)}</td>
-                    <td style="text-align:center;padding:8px 10px;">${tAdmP}${totalAdminRasioPct!==0?salinBtn(totalAdminRasioPct+'%'):''}</td>
+                    <td style="text-align:center;padding:8px 10px;">${tAdmP}${salinBtn(totalAdminRasioPct+'%')}</td>
                 </tr>`;
             } else {
                 html+=`<tr class="rk-row-header"><td colspan="3">${r.label}</td></tr>`;
@@ -2581,27 +2582,27 @@ function updateRasioDashboard() {
             const labaText=isPos?formatRp(r.val):'('+formatRp(Math.abs(r.val))+')';
             html+=`<tr class="rk-row-laba" style="background:${isPos?'#f0fdf4':'#fff0f0'};border-top:2px solid ${isPos?'#22c55e':'#ef4444'};">
                 <td style="font-weight:800;color:${isPos?'#14532d':'#1a1a1a'};">${r.label}</td>
-                <td colspan="2" style="text-align:right;font-size:1.1em;font-weight:800;color:${isPos?'#14532d':'#1a1a1a'};">${labaText}${salinBtn(String(r.val))}</td>
+                <td colspan="2" style="text-align:right;font-size:1.1em;font-weight:800;color:${isPos?'#14532d':'#1a1a1a'};">${labaText}${salinBtn(r.val)}</td>
             </tr>`;
         } else if(r.type==='sub'){
             const vDisplay=r.val!==undefined&&r.val!==null?(r.val<0?'('+formatRp(Math.abs(r.val))+')':formatRp(r.val)):'—';
-            const vRaw=r.val!==undefined&&r.val!==null?String(Math.abs(r.val)):'';
+            const vRaw=r.val!==undefined&&r.val!==null?Math.abs(r.val):'0';
             const pDisplay=r.pct!==undefined&&r.pct!==null?pct(r.pct,r.pctCls||'',r.pctInt||false):'';
-            const pRaw=r.pct!==undefined&&r.pct!==null?((r.pct>=0?'+':'')+r.pct.toFixed(2)+'%'):'';
+            const pRaw=r.pct!==undefined&&r.pct!==null?((r.pct>=0?'+':'')+r.pct.toFixed(2)+'%'):'0%';
             const subPct = r.pct!==undefined&&r.pct!==null ? `<span class="rk-pct ${r.pctCls||''}" style="font-size:0.82em;font-weight:800;min-width:58px;text-align:center;display:inline-block;padding:3px 8px;">${(r.pct>=0?'+':'')+r.pct.toFixed(2)}%</span>` : '';
             html+=`<tr class="rk-row-sub">
                 <td style="color:#666;">↳ ${r.label}</td>
-                <td style="text-align:right;font-weight:700;color:${r.val<0?'#991b1b':'#333'};">${vDisplay}${vRaw?salinBtn(vRaw):''}</td>
-                <td style="text-align:center;padding:6px 10px;">${subPct}${pRaw?salinBtn(pRaw):''}</td>
+                <td style="text-align:right;font-weight:700;color:${r.val<0?'#991b1b':'#333'};">${vDisplay}${salinBtn(vRaw)}</td>
+                <td style="text-align:center;padding:6px 10px;">${subPct}${salinBtn(pRaw)}</td>
             </tr>`;
         } else {
-            let vDisplay='—', pDisplay='', vRaw='', pRaw='';
+            let vDisplay='—', pDisplay='', vRaw='0', pRaw='0%';
             if(r.isQty){
                 vDisplay=`<strong>${r.val.toLocaleString('id-ID')}</strong>`;
                 vRaw=String(r.val);
             } else if(r.acosText!==undefined){
                 vDisplay=`<span class="rk-pct ${r.acosCls||''}" style="font-size:0.82em;font-weight:800;padding:3px 9px;">${r.acosText}</span>`;
-                vRaw=r.acosText!=='—'?r.acosText:'';
+                vRaw=r.acosText!=='—'?r.acosText:'0';
             } else if(r.val!==null&&r.val!==undefined){
                 vDisplay=`<strong>${r.val<0?'('+formatRp(Math.abs(r.val))+')':formatRp(r.val)}</strong>`;
                 vRaw=String(Math.abs(r.val));
@@ -2609,24 +2610,23 @@ function updateRasioDashboard() {
             const valColor = (r.val!==null&&r.val!==undefined&&r.val<0)?'#991b1b':'#333';
             if(r.pctText!==undefined){
                 pDisplay=`<span class="rk-pct ${r.pctCls||''}" style="font-size:0.9em;font-weight:800;min-width:65px;text-align:center;display:inline-block;padding:4px 10px;">${r.pctText}</span>`;
-                pRaw=r.pctText!=='—'?r.pctText:'';
+                pRaw=r.pctText!=='—'?r.pctText:'0%';
             } else if(r.pct!==undefined&&r.pct!==null){
                 pDisplay=pct(r.pct,r.pctCls||'',r.pctInt||false);
                 pRaw=(r.pct>=0?'+':'')+r.pct.toFixed(2)+'%';
             }
-            // Special: ROAS AKTUAL — salin nilai ROAS dan ACOS
             if(r.label==='ROAS AKTUAL'){
-                const roasCopyText = roasAktual>0?`ROAS: ${roasAktual} | ACOS: ${acosAktual.toFixed(2)}%`:'';
+                const roasCopyText = roasAktual>0?`ROAS: ${roasAktual} | ACOS: ${acosAktual.toFixed(2)}%`:'0';
                 html+=`<tr class="rk-row-normal">
                     <td style="${r.bold?'font-weight:700;':''}color:#222;">${r.label}</td>
-                    <td style="text-align:right;color:${valColor};">${vDisplay}${roasCopyText?salinBtn(roasCopyText):''}</td>
-                    <td style="text-align:center;padding:8px 10px;">${pDisplay}${r.pctText&&r.pctText!=='—'?salinBtn(r.pctText):''}</td>
+                    <td style="text-align:right;color:${valColor};">${vDisplay}${salinBtn(roasCopyText)}</td>
+                    <td style="text-align:center;padding:8px 10px;">${pDisplay}${salinBtn(r.pctText&&r.pctText!=='—'?r.pctText:'0')}</td>
                 </tr>`;
             } else {
                 html+=`<tr class="rk-row-normal">
                     <td style="${r.bold?'font-weight:700;':''}color:#222;">${r.label}</td>
-                    <td style="text-align:right;color:${valColor};">${vDisplay}${vRaw?salinBtn(vRaw):''}</td>
-                    <td style="text-align:center;padding:8px 10px;">${pDisplay}${pRaw?salinBtn(pRaw):''}</td>
+                    <td style="text-align:right;color:${valColor};">${vDisplay}${salinBtn(vRaw)}</td>
+                    <td style="text-align:center;padding:8px 10px;">${pDisplay}${salinBtn(pRaw)}</td>
                 </tr>`;
             }
         }
@@ -3720,6 +3720,35 @@ async function pilihRekapToko(id, nama) {
 }
 
 async function loadRekapForToko(tokoId) {
+    const bulanNames = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'];
+
+    // ── Helper: pastikan rekapData selalu 12 bulan ──────────────
+    function _padTo12Bulan(tahun) {
+        // Deteksi tahun dari data yang ada jika tidak ada input
+        const usedTahun = tahun || (rekapData.length > 0
+            ? String(rekapData[0].bulan).split(' ')[1] || new Date().getFullYear()
+            : new Date().getFullYear());
+
+        // Kumpulkan nama bulan yang sudah ada (prefix "Jan", "Feb", dst)
+        const existingPrefixes = new Set(rekapData.map(b => String(b.bulan).split(' ')[0]));
+
+        // Tambahkan bulan yang belum ada, urut Jan→Des
+        bulanNames.forEach(bNama => {
+            if (!existingPrefixes.has(bNama)) {
+                rekapData.push({ bulan: bNama + ' ' + usedTahun, data: _makeEmptyRekapData() });
+            }
+        });
+
+        // Sort Jan→Des berdasarkan index bulanNames
+        rekapData.sort((a, b) => {
+            const ai = bulanNames.indexOf(String(a.bulan).split(' ')[0]);
+            const bi = bulanNames.indexOf(String(b.bulan).split(' ')[0]);
+            return ai - bi;
+        });
+    }
+
+    const tahunInput = document.getElementById('rekap_tahun')?.value || new Date().getFullYear();
+
     // Coba Supabase
     if (typeof supaFetch === 'function' && tokoId) {
         try {
@@ -3737,12 +3766,14 @@ async function loadRekapForToko(tokoId) {
                         gpm: r.gpm, npm: r.npm, laba: r.laba_rugi
                     }
                 }));
+                // Tambal sampai 12 bulan jika kurang
+                if (rekapData.length < 12) _padTo12Bulan(tahunInput);
+                saveRekap();
                 renderRekapTable();
                 return;
             }
             // Supabase kosong — auto-init 12 bulan
-            const tahun = (document.getElementById('rekap_tahun')?.value) || new Date().getFullYear();
-            _initRekap12Bulan(tahun);
+            _initRekap12Bulan(tahunInput);
             saveRekap();
             renderRekapTable();
             return;
@@ -3753,10 +3784,12 @@ async function loadRekapForToko(tokoId) {
     const saved = localStorage.getItem(key);
     if (saved) {
         rekapData = JSON.parse(saved);
+        // Tambal sampai 12 bulan jika kurang
+        if (rekapData.length < 12) _padTo12Bulan(tahunInput);
+        saveRekap();
     } else {
         // Auto-init 12 bulan untuk tahun sekarang
-        const tahun = (document.getElementById('rekap_tahun')?.value) || new Date().getFullYear();
-        _initRekap12Bulan(tahun);
+        _initRekap12Bulan(tahunInput);
         saveRekap();
     }
     renderRekapTable();

@@ -885,7 +885,7 @@
                 <!-- Input tahun -->
                 <input type="text" id="rekap_tahun" placeholder="2026" maxlength="4"
                     style="border:1.5px solid #ddd;border-radius:8px;padding:6px 10px;font-size:0.88em;font-weight:700;outline:none;width:72px;text-align:center;"
-                    oninput="renderRekapTable()">
+                    oninput="onRekapTahunChange()">
                 <!-- Tombol aksi -->
                 <button onclick="tambahBulanRekap()"
                     style="background:#ee4d2d;color:#fff;border:none;padding:7px 14px;border-radius:8px;font-size:0.8em;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;">
@@ -916,7 +916,7 @@
             <div id="rekapEmpty" style="text-align:center;padding:48px 20px;color:#bbb;font-size:0.85em;display:none;">
                 <div style="font-size:2em;margin-bottom:10px;">📊</div>
                 <div style="font-weight:700;color:#ccc;margin-bottom:6px;">Belum ada data</div>
-                Pilih toko & klik <b style="color:#ee4d2d;">+ Bulan</b> untuk mulai merekap.
+                Pilih toko untuk otomatis memuat 12 bulan rekap.
             </div>
         </div>
     </div>

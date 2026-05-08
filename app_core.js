@@ -2396,6 +2396,28 @@ function syncStatusDetail() {
     }
 }
 
+// ── HELPER: Salin teks ke clipboard ─────────────────────────────
+function salinOverview(btn, text) {
+    navigator.clipboard.writeText(text).then(() => {
+        const orig = btn.innerHTML;
+        btn.innerHTML = '✓';
+        btn.style.background = '#22c55e';
+        btn.style.color = '#fff';
+        setTimeout(() => { btn.innerHTML = orig; btn.style.background = ''; btn.style.color = ''; }, 1200);
+    }).catch(() => {
+        // fallback
+        const ta = document.createElement('textarea');
+        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+        document.body.removeChild(ta);
+        const orig = btn.innerHTML;
+        btn.innerHTML = '✓';
+        btn.style.background = '#22c55e';
+        btn.style.color = '#fff';
+        setTimeout(() => { btn.innerHTML = orig; btn.style.background = ''; btn.style.color = ''; }, 1200);
+    });
+}
+
 // ── UPDATE DASHBOARD ──────────────────────────────────────────
 function updateRasioDashboard() {
     // Reset canvas jika tidak ada data order
@@ -2495,6 +2517,13 @@ function updateRasioDashboard() {
     const rp=(v,cls='')=>`<span class="${cls||''}">${v<0?'('+formatRp(Math.abs(v))+')':formatRp(v)}</span>`;
     const neg=v=>v<0?'rk-val-neg':'rk-val-pos';
 
+    // ── Tombol Salin ──────────────────────────────────────────────
+    const _salinBtnStyle = `display:inline-flex;align-items:center;justify-content:center;margin-left:5px;padding:2px 6px;border-radius:5px;border:1px solid #e5e7eb;background:#f9fafb;color:#555;font-size:0.68em;font-weight:700;cursor:pointer;vertical-align:middle;line-height:1;transition:background 0.15s;`;
+    const salinBtn = (rawText) => {
+        const escaped = rawText.replace(/'/g,"&#39;").replace(/"/g,'&quot;');
+        return `<button style="${_salinBtnStyle}" onclick="salinOverview(this,'${escaped}')" title="Salin">📋</button>`;
+    };
+
     const rows=[
         {type:'normal', label:'TOTAL PENDAPATAN', val:totalPendapatan, pct:null, bold:true},
         {type:'normal', label:'TOTAL PENGHASILAN', val:totalPenghasilan, pct:null, bold:true},
@@ -2534,46 +2563,72 @@ function updateRasioDashboard() {
         if(r.type==='header'){
             if(r.label==='RASIO ADMIN DAN LAYANAN'){
                 const tAdmV = totalAdminKomponen>0?'('+formatRp(totalAdminKomponen)+')':'—';
+                const tAdmVRaw = totalAdminKomponen>0?String(totalAdminKomponen):'0';
                 const tAdmP = totalAdminRasioPct!==0?`<span class="rk-admin-badge">⚠ ${totalAdminRasioPct}%</span>`:'';
                 html+=`<tr class="rk-row-admin-total">
                     <td>
                         TOTAL BIAYA ADMIN &amp; LAYANAN
                         <span style="font-size:0.68em;font-weight:600;color:#6b7280;letter-spacing:0.3px;margin-left:6px;">(base harga)</span>
                     </td>
-                    <td style="text-align:right;font-size:1em;color:#1a1a1a;font-weight:900;letter-spacing:0.3px;">${tAdmV}</td>
-                    <td style="text-align:center;padding:8px 10px;">${tAdmP}</td>
+                    <td style="text-align:right;font-size:1em;color:#1a1a1a;font-weight:900;letter-spacing:0.3px;">${tAdmV}${salinBtn(tAdmVRaw)}</td>
+                    <td style="text-align:center;padding:8px 10px;">${tAdmP}${totalAdminRasioPct!==0?salinBtn(totalAdminRasioPct+'%'):''}</td>
                 </tr>`;
             } else {
                 html+=`<tr class="rk-row-header"><td colspan="3">${r.label}</td></tr>`;
             }
         } else if(r.type==='laba'){
             const isPos=r.val>=0;
+            const labaText=isPos?formatRp(r.val):'('+formatRp(Math.abs(r.val))+')';
             html+=`<tr class="rk-row-laba" style="background:${isPos?'#f0fdf4':'#fff0f0'};border-top:2px solid ${isPos?'#22c55e':'#ef4444'};">
                 <td style="font-weight:800;color:${isPos?'#14532d':'#1a1a1a'};">${r.label}</td>
-                <td colspan="2" style="text-align:right;font-size:1.1em;font-weight:800;color:${isPos?'#14532d':'#1a1a1a'};">${isPos?formatRp(r.val):'('+formatRp(Math.abs(r.val))+')'}</td>
+                <td colspan="2" style="text-align:right;font-size:1.1em;font-weight:800;color:${isPos?'#14532d':'#1a1a1a'};">${labaText}${salinBtn(String(r.val))}</td>
             </tr>`;
         } else if(r.type==='sub'){
             const vDisplay=r.val!==undefined&&r.val!==null?(r.val<0?'('+formatRp(Math.abs(r.val))+')':formatRp(r.val)):'—';
+            const vRaw=r.val!==undefined&&r.val!==null?String(Math.abs(r.val)):'';
             const pDisplay=r.pct!==undefined&&r.pct!==null?pct(r.pct,r.pctCls||'',r.pctInt||false):'';
+            const pRaw=r.pct!==undefined&&r.pct!==null?((r.pct>=0?'+':'')+r.pct.toFixed(2)+'%'):'';
             const subPct = r.pct!==undefined&&r.pct!==null ? `<span class="rk-pct ${r.pctCls||''}" style="font-size:0.82em;font-weight:800;min-width:58px;text-align:center;display:inline-block;padding:3px 8px;">${(r.pct>=0?'+':'')+r.pct.toFixed(2)}%</span>` : '';
             html+=`<tr class="rk-row-sub">
                 <td style="color:#666;">↳ ${r.label}</td>
-                <td style="text-align:right;font-weight:700;color:${r.val<0?'#991b1b':'#333'};">${vDisplay}</td>
-                <td style="text-align:center;padding:6px 10px;">${subPct}</td>
+                <td style="text-align:right;font-weight:700;color:${r.val<0?'#991b1b':'#333'};">${vDisplay}${vRaw?salinBtn(vRaw):''}</td>
+                <td style="text-align:center;padding:6px 10px;">${subPct}${pRaw?salinBtn(pRaw):''}</td>
             </tr>`;
         } else {
-            let vDisplay='—', pDisplay='';
-            if(r.isQty){ vDisplay=`<strong>${r.val.toLocaleString('id-ID')}</strong>`; }
-            else if(r.acosText!==undefined){ vDisplay=`<span class="rk-pct ${r.acosCls||''}" style="font-size:0.82em;font-weight:800;padding:3px 9px;">${r.acosText}</span>`; }
-            else if(r.val!==null&&r.val!==undefined){ vDisplay=`<strong>${r.val<0?'('+formatRp(Math.abs(r.val))+')':formatRp(r.val)}</strong>`; }
+            let vDisplay='—', pDisplay='', vRaw='', pRaw='';
+            if(r.isQty){
+                vDisplay=`<strong>${r.val.toLocaleString('id-ID')}</strong>`;
+                vRaw=String(r.val);
+            } else if(r.acosText!==undefined){
+                vDisplay=`<span class="rk-pct ${r.acosCls||''}" style="font-size:0.82em;font-weight:800;padding:3px 9px;">${r.acosText}</span>`;
+                vRaw=r.acosText!=='—'?r.acosText:'';
+            } else if(r.val!==null&&r.val!==undefined){
+                vDisplay=`<strong>${r.val<0?'('+formatRp(Math.abs(r.val))+')':formatRp(r.val)}</strong>`;
+                vRaw=String(Math.abs(r.val));
+            }
             const valColor = (r.val!==null&&r.val!==undefined&&r.val<0)?'#991b1b':'#333';
-            if(r.pctText!==undefined){ pDisplay=`<span class="rk-pct ${r.pctCls||''}" style="font-size:0.9em;font-weight:800;min-width:65px;text-align:center;display:inline-block;padding:4px 10px;">${r.pctText}</span>`; }
-            else if(r.pct!==undefined&&r.pct!==null){ pDisplay=pct(r.pct,r.pctCls||'',r.pctInt||false); }
-            html+=`<tr class="rk-row-normal">
-                <td style="${r.bold?'font-weight:700;':''}color:#222;">${r.label}</td>
-                <td style="text-align:right;color:${valColor};">${vDisplay}</td>
-                <td style="text-align:center;padding:8px 10px;">${pDisplay}</td>
-            </tr>`;
+            if(r.pctText!==undefined){
+                pDisplay=`<span class="rk-pct ${r.pctCls||''}" style="font-size:0.9em;font-weight:800;min-width:65px;text-align:center;display:inline-block;padding:4px 10px;">${r.pctText}</span>`;
+                pRaw=r.pctText!=='—'?r.pctText:'';
+            } else if(r.pct!==undefined&&r.pct!==null){
+                pDisplay=pct(r.pct,r.pctCls||'',r.pctInt||false);
+                pRaw=(r.pct>=0?'+':'')+r.pct.toFixed(2)+'%';
+            }
+            // Special: ROAS AKTUAL — salin nilai ROAS dan ACOS
+            if(r.label==='ROAS AKTUAL'){
+                const roasCopyText = roasAktual>0?`ROAS: ${roasAktual} | ACOS: ${acosAktual.toFixed(2)}%`:'';
+                html+=`<tr class="rk-row-normal">
+                    <td style="${r.bold?'font-weight:700;':''}color:#222;">${r.label}</td>
+                    <td style="text-align:right;color:${valColor};">${vDisplay}${roasCopyText?salinBtn(roasCopyText):''}</td>
+                    <td style="text-align:center;padding:8px 10px;">${pDisplay}${r.pctText&&r.pctText!=='—'?salinBtn(r.pctText):''}</td>
+                </tr>`;
+            } else {
+                html+=`<tr class="rk-row-normal">
+                    <td style="${r.bold?'font-weight:700;':''}color:#222;">${r.label}</td>
+                    <td style="text-align:right;color:${valColor};">${vDisplay}${vRaw?salinBtn(vRaw):''}</td>
+                    <td style="text-align:center;padding:8px 10px;">${pDisplay}${pRaw?salinBtn(pRaw):''}</td>
+                </tr>`;
+            }
         }
     });
 
@@ -3486,9 +3541,42 @@ async function saveRekap() {
     }
 }
 
+function onRekapTahunChange() {
+    const tahun = document.getElementById('rekap_tahun').value;
+    if (!tahun || tahun.length < 4) return;
+    if (rekapData.length === 0 && _rekapTokoId) {
+        _initRekap12Bulan(tahun);
+        saveRekap();
+    }
+    renderRekapTable();
+}
+
+function _makeEmptyRekapData() {
+    const emptyData = {};
+    REKAP_METRIK.forEach(m => { if (m.type !== 'header') emptyData[m.key] = ''; });
+    return emptyData;
+}
+
+function _initRekap12Bulan(tahun) {
+    const bulanNames = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'];
+    rekapData = bulanNames.map(b => ({
+        bulan: b + ' ' + tahun,
+        data: _makeEmptyRekapData()
+    }));
+}
+
 function tambahBulanRekap() {
     if (!_rekapTokoId) {
         alert('Pilih toko dulu sebelum menambah bulan.');
+        return;
+    }
+    // Jika belum ada data sama sekali, init 12 bulan langsung
+    if (rekapData.length === 0) {
+        const tahun = (document.getElementById('rekap_tahun').value || new Date().getFullYear());
+        if (!confirm(`Init 12 bulan untuk tahun ${tahun}?`)) return;
+        _initRekap12Bulan(tahun);
+        saveRekap();
+        renderRekapTable();
         return;
     }
     const bulanNames = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'];
@@ -3496,9 +3584,7 @@ function tambahBulanRekap() {
     const tahun = (document.getElementById('rekap_tahun').value || new Date().getFullYear());
     const nama = prompt('Nama bulan (cth: Jan 2026):', bulanNames[nextIdx] + ' ' + tahun);
     if (!nama) return;
-    const emptyData = {};
-    REKAP_METRIK.forEach(m => { if (m.type !== 'header') emptyData[m.key] = ''; });
-    rekapData.push({ bulan: nama.trim(), data: emptyData });
+    rekapData.push({ bulan: nama.trim(), data: _makeEmptyRekapData() });
     saveRekap();
     renderRekapTable();
 }
@@ -3654,12 +3740,25 @@ async function loadRekapForToko(tokoId) {
                 renderRekapTable();
                 return;
             }
+            // Supabase kosong — auto-init 12 bulan
+            const tahun = (document.getElementById('rekap_tahun')?.value) || new Date().getFullYear();
+            _initRekap12Bulan(tahun);
+            saveRekap();
+            renderRekapTable();
+            return;
         } catch(e) { console.warn('rekap supabase err:', e); }
     }
     // Fallback localStorage
     const key = 'rekapTahunan_' + (tokoId || 'default');
     const saved = localStorage.getItem(key);
-    rekapData = saved ? JSON.parse(saved) : [];
+    if (saved) {
+        rekapData = JSON.parse(saved);
+    } else {
+        // Auto-init 12 bulan untuk tahun sekarang
+        const tahun = (document.getElementById('rekap_tahun')?.value) || new Date().getFullYear();
+        _initRekap12Bulan(tahun);
+        saveRekap();
+    }
     renderRekapTable();
 }
 
